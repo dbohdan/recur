@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "retry-cli"
+name = "retry-cmd"
 version = "0.1.0"
 description = "Retry a command with exponential backoff and jitter."
 authors = ["D. Bohdan <dbohdan@dbohdan.com>"]
@@ -32,7 +32,7 @@ requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.poetry.scripts]
-retry-cli = 'retry_cli:main'
+retry-cmd = 'retry_cmd:main'
 
 [tool.ruff]
 select = [
@@ -95,7 +95,7 @@ select = [
 ]
 
 [tool.ruff.per-file-ignores]
-"retry_cli.py" = [
+"retry_cmd.py" = [
   "PERF203", # try-except-in-loop
   "S311",    # suspicious-non-cryptographic-random-usage
   "S603",    # subprocess-without-shell-equals-true

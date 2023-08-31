@@ -31,7 +31,7 @@ import pytest
 TEST_PATH = Path(__file__).resolve().parent
 COMMAND = shlex.split(os.environ.get("RETRY_COMMAND", ""))
 if [] == COMMAND:
-    COMMAND = [sys.executable, Path(TEST_PATH, "..", "retry_cli.py")]
+    COMMAND = [sys.executable, Path(TEST_PATH, "..", "retry_cmd.py")]
 
 
 def run(
@@ -56,7 +56,7 @@ def run(
     return output
 
 
-class TestRetryCLI(unittest.TestCase):
+class TestRetryCmd(unittest.TestCase):
     def test_usage(self) -> None:
         assert re.search("^usage", run(check=False, return_stderr=True))
 
@@ -65,7 +65,7 @@ class TestRetryCLI(unittest.TestCase):
 
 
 @unittest.skipUnless(os.name == "posix", "requires a POSIX OS")
-class TestRetryCLIPOSIX(unittest.TestCase):
+class TestRetryCmdPOSIX(unittest.TestCase):
     def test_echo(self) -> None:
         assert re.search("(?s)hello", run("echo", "hello"))
 
