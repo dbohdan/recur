@@ -1,10 +1,13 @@
 [tool.poetry]
-name = "retry-cmd"
+name = "recur-command"
 version = "0.1.0"
-description = "Retry a command with exponential backoff and jitter."
+description = "Run a command, retrying if it fails."
 authors = ["D. Bohdan <dbohdan@dbohdan.com>"]
 license = "MIT"
 readme = "README.md"
+packages = [
+  { include = "recur.py" }
+]
 # repository = ""
 keywords = [
   "retry",
@@ -32,7 +35,7 @@ requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.poetry.scripts]
-retry-cmd = 'retry_cmd:main'
+recur = 'recur:main'
 
 [tool.ruff]
 select = [
@@ -95,7 +98,7 @@ select = [
 ]
 
 [tool.ruff.per-file-ignores]
-"retry_cmd.py" = [
+"recur.py" = [
   "PERF203", # try-except-in-loop
   "S311",    # suspicious-non-cryptographic-random-usage
   "S603",    # subprocess-without-shell-equals-true

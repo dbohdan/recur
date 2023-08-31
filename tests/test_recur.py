@@ -29,9 +29,9 @@ from pathlib import Path
 import pytest
 
 TEST_PATH = Path(__file__).resolve().parent
-COMMAND = shlex.split(os.environ.get("RETRY_COMMAND", ""))
+COMMAND = shlex.split(os.environ.get("RECUR_COMMAND", ""))
 if [] == COMMAND:
-    COMMAND = [sys.executable, Path(TEST_PATH, "..", "retry_cmd.py")]
+    COMMAND = [sys.executable, Path(TEST_PATH, "..", "recur.py")]
 
 
 def run(
@@ -56,7 +56,7 @@ def run(
     return output
 
 
-class TestRetryCmd(unittest.TestCase):
+class TestRecur(unittest.TestCase):
     def test_usage(self) -> None:
         assert re.search("^usage", run(check=False, return_stderr=True))
 
@@ -65,7 +65,7 @@ class TestRetryCmd(unittest.TestCase):
 
 
 @unittest.skipUnless(os.name == "posix", "requires a POSIX OS")
-class TestRetryCmdPOSIX(unittest.TestCase):
+class TestRecurPOSIX(unittest.TestCase):
     def test_echo(self) -> None:
         assert re.search("(?s)hello", run("echo", "hello"))
 

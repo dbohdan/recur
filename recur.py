@@ -1,5 +1,5 @@
 #! /usr/bin/env python3
-# retry-cmd
+# recur
 # Retry a command with exponential backoff and jitter.
 # License: MIT.
 #
