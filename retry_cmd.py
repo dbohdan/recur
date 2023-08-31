@@ -117,7 +117,8 @@ def main() -> None:
             return (0, float(arg))
 
         if commas == 1:
-            return tuple([float(value) for value in arg.split(",", 1)])
+            head, tail = arg.split(",", 1)
+            return (float(head), float(tail))
 
         msg = "jitter range must contain no more than one comma"
         raise ValueError(msg)
