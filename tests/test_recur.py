@@ -61,7 +61,7 @@ class TestRecur(unittest.TestCase):
         assert re.search("^usage", run(check=False, return_stderr=True))
 
     def test_version(self) -> None:
-        assert re.search("\\d+\\.\\d+\\.\\d+", run("-v"))
+        assert re.search("\\d+\\.\\d+\\.\\d+", run("--version"))
 
 
 @unittest.skipUnless(os.name == "posix", "requires a POSIX OS")
@@ -76,6 +76,18 @@ class TestRecurPOSIX(unittest.TestCase):
 
     def test_options(self) -> None:
         run("-b", "1", "-d", "0", "--jitter", "0,0.1", "-m", "0", "-t", "0", "false")
+
+    def test_verbose(self) -> None:
+        output = run(
+            "-v",
+            "-t",
+            "3",
+            "false",
+            check=False,
+            return_stdout=False,
+            return_stderr=True,
+        )
+        assert len(re.findall("command exited with code", output)) == 3
 
 
 if __name__ == "__main__":

@@ -27,6 +27,7 @@ from __future__ import annotations
 
 import argparse
 import itertools
+import logging
 import random
 import subprocess as sp
 import sys
@@ -61,7 +62,9 @@ def retry_command(
     for i in iterator:
         try:
             sp.run(args, check=True)
-        except sp.CalledProcessError:
+        except sp.CalledProcessError as e:
+            logging.info("command exited with code %u", e.returncode)
+
             if i == tries - 1:
                 raise
 
@@ -90,11 +93,12 @@ def main() -> None:
     )
 
     parser.add_argument(
-        "-v",
+        "-V",
         "--version",
         action="version",
         version=VERSION,
     )
+
     parser.add_argument(
         "-b",
         "--backoff",
@@ -154,7 +158,20 @@ def main() -> None:
         help="maximum number of attempts (negative for infinite, default: %(default)s)",
     )
 
+    parser.add_argument(
+        "-v",
+        "--verbose",
+        action="store_true",
+        help="announce failures",
+    )
+
     args = parser.parse_args()
+    logging.basicConfig(
+        datefmt="%Y-%m-%d %H:%M:%S %z",
+        format="[{asctime}] {message}",
+        level=logging.INFO if args.verbose else logging.WARN,
+        style="{",
+    )
 
     try:
         retry_command(
