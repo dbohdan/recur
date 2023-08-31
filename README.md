@@ -13,3 +13,11 @@ Python 3.8 or later.
 ## License
 
 MIT.
+
+## Alternatives
+
+* [retry (joshdk)](https://github.com/joshdk/retry). Written in Go. `go install github.com/joshdk/retry@master`.
+* [retry (kadwanev)](https://github.com/kadwanev/retry). Written in Bash.
+* [retry (minfrin)](https://github.com/minfrin/retry). Written in C. Packaged in Debian and Ubuntu repositories. `sudo apt install retry`.
+* [retry (timofurrer)](https://github.com/timofurrer/retry-cmd). Written in Rust. `cargo install retry-cmd`.
+* [retry-cli](https://github.com/tirsen/retry-cli). Written in JavaScript for Node.js. `npx retry-cli`.
