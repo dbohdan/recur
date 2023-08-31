@@ -8,7 +8,7 @@ readme = "README.md"
 packages = [
   { include = "recur.py" }
 ]
-# repository = ""
+repository = "https://gitlab.com/dbohdan/recur"
 keywords = [
   "retry",
 ]
