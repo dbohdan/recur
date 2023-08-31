@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "recur-command"
 version = "0.1.0"
-description = "Run a command, retrying if it fails."
+description = "Retry a command with exponential backoff and jitter."
 authors = ["D. Bohdan <dbohdan@dbohdan.com>"]
 license = "MIT"
 readme = "README.md"
