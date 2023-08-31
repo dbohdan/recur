@@ -168,7 +168,7 @@ def main() -> None:
     args = parser.parse_args()
     logging.basicConfig(
         datefmt="%Y-%m-%d %H:%M:%S %z",
-        format="[{asctime}] {message}",
+        format="recur: [{asctime}] {message}",
         level=logging.INFO if args.verbose else logging.WARN,
         style="{",
     )
