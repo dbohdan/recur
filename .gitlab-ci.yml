@@ -2,7 +2,7 @@ linux:
   image: python:3.8
 
   before_script:
-    - pip install poetry tox
+    - pip install tox
 
   script:
     - tox run
@@ -15,7 +15,7 @@ windows:
 
   before_script:
     - choco install python --version=3.8.10 -y -f
-    - C:\Python38\python.exe -m pip install poetry tox
+    - C:\Python38\python.exe -m pip install tox
     - $Env:PATH += ";C:\Python38\Scripts"
 
   script:
