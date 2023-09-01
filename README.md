@@ -34,7 +34,7 @@ Retry a command with exponential backoff and jitter.
 
 positional arguments:
   command               command to run
-  arg                   arguments
+  args                  arguments
 
 options:
   -h, --help            show this help message and exit

@@ -128,7 +128,6 @@ def main() -> None:
     parser.add_argument(
         "args",
         help="arguments",
-        metavar="arg",
         nargs=argparse.REMAINDER,
         type=str,
     )
