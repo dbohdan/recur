@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "recur-command"
-version = "0.1.0"
+version = "0.2.0"
 description = "Retry a command with exponential backoff and jitter."
 authors = ["D. Bohdan <dbohdan@dbohdan.com>"]
 license = "MIT"

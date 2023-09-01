@@ -36,7 +36,7 @@ import traceback
 from typing import Literal
 
 MAX_DELAY = 366 * 24 * 60 * 60
-VERSION = "0.1.0"
+VERSION = "0.2.0"
 
 
 class RelativeTimeLevelSuffixFormatter(logging.Formatter):
@@ -96,22 +96,24 @@ def retry_command(
     min_random_delay: float,
     max_random_delay: float,
     tries: int,
-) -> None:
+) -> int:
+    code = 0
     iterator = range(tries) if tries >= 0 else itertools.count()
+
     for i in iterator:
-        try:
-            sp.run(args, check=True)
-        except sp.CalledProcessError as e:
-            logging.info("command exited with code %u", e.returncode)
-
-            if i == tries - 1:
-                raise
-
+        if i > 0:
             fixed_delay = min(max_fixed_delay, min_fixed_delay * backoff**i)
             random_delay = random.uniform(min_random_delay, max_random_delay)
             time.sleep(fixed_delay + random_delay)
-        else:
-            return
+
+        completed = sp.run(args, check=False)
+        code = completed.returncode
+        logging.info("command exited with code %u", code)
+
+        if code == 0:
+            return 0
+
+    return code
 
 
 def main() -> None:
@@ -218,7 +220,7 @@ def main() -> None:
     configure_logging(verbose=args.verbose)
 
     try:
-        retry_command(
+        code = retry_command(
             [args.command, *args.args],
             backoff=args.backoff,
             min_fixed_delay=args.delay,
@@ -227,10 +229,9 @@ def main() -> None:
             max_random_delay=args.jitter[1],
             tries=args.tries,
         )
+        sys.exit(code)
     except KeyboardInterrupt:
         pass
-    except sp.CalledProcessError as e:
-        sys.exit(e.returncode)
     except Exception as e:  # noqa: BLE001
         tb = sys.exc_info()[-1]
         frame = traceback.extract_tb(tb)[-1]
