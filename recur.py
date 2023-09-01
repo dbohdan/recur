@@ -220,10 +220,22 @@ def main() -> None:
             max_random_delay=args.jitter[1],
             tries=args.tries,
         )
+    except KeyboardInterrupt:
+        pass
     except sp.CalledProcessError as e:
         sys.exit(e.returncode)
-    except KeyboardInterrupt as _:
-        pass
+    except Exception as e:  # noqa: BLE001
+        tb = sys.exc_info()[-1]
+        frame = traceback.extract_tb(tb)[-1]
+        line = frame.lineno
+
+        logging.error(
+            "%s (debug information: line %u, exception %s)",
+            e,
+            line,
+            type(e).__name__,
+        )
+        sys.exit(1)
 
 
 if __name__ == "__main__":
