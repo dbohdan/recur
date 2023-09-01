@@ -185,7 +185,7 @@ def main() -> None:
         default="0,0",
         help=(
             "additional random delay "
-            '(maximum seconds or "min,max" in seconds, default: "%(default)s")'
+            '(maximum seconds or "min,max" seconds, default: "%(default)s")'
         ),
         type=jitter,
     )

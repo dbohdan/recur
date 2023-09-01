@@ -47,7 +47,7 @@ options:
                         default: 0)
   -j JITTER, --jitter JITTER
                         additional random delay (maximum seconds or "min,max"
-                        in seconds, default: "0,0")
+                        seconds, default: "0,0")
   -m MAX, --max-delay MAX
                         maximum delay (seconds, default: 86400)
   -t TRIES, --tries TRIES
