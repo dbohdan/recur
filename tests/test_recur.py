@@ -89,6 +89,9 @@ class TestRecurPOSIX(unittest.TestCase):
         )
         assert len(re.findall("command exited with code", output)) == 3
 
+    def test_stop_on_success(self) -> None:
+        assert len(re.findall("(?s)hello", run("echo", "hello"))) == 1
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -110,6 +110,8 @@ def retry_command(
             fixed_delay = min(max_fixed_delay, min_fixed_delay * backoff**i)
             random_delay = random.uniform(min_random_delay, max_random_delay)
             time.sleep(fixed_delay + random_delay)
+        else:
+            return
 
 
 def main() -> None:
