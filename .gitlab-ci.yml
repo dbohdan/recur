@@ -1,8 +1,22 @@
-image: python:3.8
+linux:
+  image: python:3.8
 
-before_script:
-  - pip install poetry tox
+  before_script:
+    - pip install poetry tox
 
-test:
   script:
     - tox run
+
+windows:
+  tags:
+    - shared-windows
+    - windows
+    - windows-1809
+
+  before_script:
+    - choco install python --version=3.8.10 -y -f
+    - C:\Python38\python.exe -m pip install poetry tox
+    - $Env:PATH += ";C:\Python38\Scripts"
+
+  script:
+    - tox
