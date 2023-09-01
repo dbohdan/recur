@@ -32,9 +32,53 @@ import random
 import subprocess as sp
 import sys
 import time
+import traceback
+from typing import Literal
 
 MAX_DELAY = 366 * 24 * 60 * 60
 VERSION = "0.1.0"
+
+
+class RelativeTimeFormatter(logging.Formatter):
+    def __init__(
+        self,
+        fmt: str | None = None,
+        style: Literal["%", "{", "$"] = "%",
+        validate: bool = True,  # noqa: FBT001, FBT002
+        *,
+        reftime: float,
+    ):
+        super().__init__(
+            fmt=fmt,
+            style=style,
+            validate=validate,
+        )
+        self._reftime = reftime
+
+    def formatTime(self, record, datefmt=None):  # noqa: ARG002, N802
+        delta_f = record.created - self._reftime
+        d = int(delta_f)
+        frac = delta_f - d
+
+        d, seconds = divmod(d, 60)
+        d, minutes = divmod(d, 60)
+        hours = d
+
+        return f"{hours:02d}:{minutes:02d}:{seconds:02d}.{10 * frac:01.0f}"
+
+
+def configure_logging(*, verbose: bool):
+    handler = logging.StreamHandler()
+    formatter = RelativeTimeFormatter(
+        fmt="recur [{asctime}]: {message}",
+        reftime=time.time(),
+        style="{",
+    )
+    handler.setFormatter(formatter)
+
+    root = logging.getLogger()
+    root.setLevel(level=logging.INFO if verbose else logging.WARN)
+    root.addHandler(handler)
 
 
 def retry_command(
@@ -164,12 +208,7 @@ def main() -> None:
     )
 
     args = parser.parse_args()
-    logging.basicConfig(
-        datefmt="%Y-%m-%d %H:%M:%S %z",
-        format="recur: [{asctime}] {message}",
-        level=logging.INFO if args.verbose else logging.WARN,
-        style="{",
-    )
+    configure_logging(verbose=args.verbose)
 
     try:
         retry_command(
