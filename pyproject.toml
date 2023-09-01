@@ -102,6 +102,7 @@ select = [
   "PERF203", # try-except-in-loop
   "S311",    # suspicious-non-cryptographic-random-usage
   "S603",    # subprocess-without-shell-equals-true
+  "TRY400",  # error-instead-of-exception
 ]
 "tests/*.py" = [
   "PLR2004", # magic-value-comparison

@@ -47,17 +47,6 @@ def retry_command(
     max_random_delay: float,
     tries: int,
 ) -> None:
-    # Prevent `OverflowError` in `time.sleep`.
-    for value in (
-        min_fixed_delay,
-        max_fixed_delay,
-        min_random_delay,
-        max_random_delay,
-    ):
-        if value < 0 or value > MAX_DELAY:
-            msg = f"delay must be between zero and {MAX_DELAY}"
-            raise ValueError(msg)
-
     iterator = range(tries) if tries >= 0 else itertools.count()
     for i in iterator:
         try:
@@ -110,25 +99,34 @@ def main() -> None:
         type=float,
     )
 
+    def delay(arg: str) -> float:
+        value = float(arg)
+
+        if value < 0 or value > MAX_DELAY:
+            msg = f"delay must be between zero and {MAX_DELAY}"
+            raise ValueError(msg)
+
+        return value
+
     parser.add_argument(
         "-d",
         "--delay",
         default=0,
         help=("constant or initial exponential delay (seconds, default: %(default)s)"),
-        type=float,
+        type=delay,
     )
 
     def jitter(arg: str) -> tuple[float, float]:
         commas = arg.count(",")
         if commas == 0:
-            return (0, float(arg))
-
-        if commas == 1:
+            head, tail = "0", arg
+        elif commas == 1:
             head, tail = arg.split(",", 1)
-            return (float(head), float(tail))
+        else:
+            msg = "jitter range must contain no more than one comma"
+            raise ValueError(msg)
 
-        msg = "jitter range must contain no more than one comma"
-        raise ValueError(msg)
+        return (delay(head), delay(tail))
 
     parser.add_argument(
         "-j",
@@ -147,7 +145,7 @@ def main() -> None:
         default=24 * 60 * 60,
         help="maximum delay (seconds, default: %(default)s)",
         metavar="MAX",
-        type=float,
+        type=delay,
     )
 
     parser.add_argument(
