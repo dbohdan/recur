@@ -4,7 +4,7 @@ This command-line tool runs a single command repeatedly until it succeeds or all
 
 It was inspired by [retry-cli](https://github.com/tirsen/retry-cli). I wanted to have something like it, but as a single-file script without the Node.js dependency. The result depends only on Python and its standard library.
 
-The CLI options are modeled after the parameters of the [`retry`](https://github.com/invl/retry) decorator, which Python programmers may know. However, I do not use the `retry` package or its code. The jitter behavior is different from `retry`. Jitter is applied starting with the first retry, not the second. I think this is what the user expects. A single-number jitter argument results in random, not constant, jitter.
+The CLI options are modeled after the parameters of the [`retry`](https://github.com/invl/retry) decorator, which Python programmers may know. However, I do not use the `retry` package or its code. The jitter behavior is different from `retry`. Jitter is applied starting with the first retry, not the second. I think this is what the user expects. A single-number jitter argument results in random jitter picked uniformly from between zero and that number every time.
 
 
 ## Requirements
