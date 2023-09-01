@@ -1,8 +1,11 @@
+variables:
+  NOX_VERSION: 2023.04.22
+
 linux:
   image: python:3.8
 
   before_script:
-    - pip install nox
+    - pip install nox==$NOX_VERSION
 
   script:
     - nox --sessions tests --pythons 3.8 3.11
@@ -15,8 +18,8 @@ windows:
 
   before_script:
     - choco install python --version=3.8.10 -y -f
-    - C:\Python38\python.exe -m pip install nox
     - $Env:PATH += ";C:\Python38\Scripts"
+    - pip install nox==$NOX_VERSION
 
   script:
     - nox --sessions tests --pythons 3.8
