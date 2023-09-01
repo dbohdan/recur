@@ -39,7 +39,7 @@ MAX_DELAY = 366 * 24 * 60 * 60
 VERSION = "0.1.0"
 
 
-class RelativeTimeFormatter(logging.Formatter):
+class RelativeTimeLevelSuffixFormatter(logging.Formatter):
     def __init__(
         self,
         fmt: str | None = None,
@@ -55,6 +55,12 @@ class RelativeTimeFormatter(logging.Formatter):
         )
         self._reftime = reftime
 
+    def format(self, record: logging.LogRecord):  # noqa: A003
+        record.levelsuffix = (
+            f" {record.levelname.lower()}" if record.levelno >= logging.WARNING else ""
+        )
+        return super().format(record)
+
     def formatTime(self, record, datefmt=None):  # noqa: ARG002, N802
         delta_f = record.created - self._reftime
         d = int(delta_f)
@@ -69,8 +75,8 @@ class RelativeTimeFormatter(logging.Formatter):
 
 def configure_logging(*, verbose: bool):
     handler = logging.StreamHandler()
-    formatter = RelativeTimeFormatter(
-        fmt="recur [{asctime}]: {message}",
+    formatter = RelativeTimeLevelSuffixFormatter(
+        fmt="recur [{asctime}]{levelsuffix}: {message}",
         reftime=time.time(),
         style="{",
     )
