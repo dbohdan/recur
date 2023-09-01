@@ -2,10 +2,10 @@ linux:
   image: python:3.8
 
   before_script:
-    - pip install tox
+    - pip install nox
 
   script:
-    - tox run
+    - nox --sessions tests --pythons 3.8 3.11
 
 windows:
   tags:
@@ -15,8 +15,8 @@ windows:
 
   before_script:
     - choco install python --version=3.8.10 -y -f
-    - C:\Python38\python.exe -m pip install tox
+    - C:\Python38\python.exe -m pip install nox
     - $Env:PATH += ";C:\Python38\Scripts"
 
   script:
-    - tox
+    - nox --sessions tests --pythons 3.8
