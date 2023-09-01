@@ -93,5 +93,16 @@ class TestRecurPOSIX(unittest.TestCase):
         assert len(re.findall("(?s)hello", run("echo", "hello"))) == 1
 
 
+@unittest.skipUnless(os.name == "nt", "requires a Windows OS")
+class TestRecurWindows(unittest.TestCase):
+    def test_exit_code(self) -> None:
+        with pytest.raises(subprocess.CalledProcessError) as e:
+            run("cmd.exe", "/c", "exit 99")
+        assert e.value.returncode == 99
+
+    def test_stop_on_success(self) -> None:
+        assert len(re.findall("(?s)hello", run("cmd.exe", "/c", "echo", "hello"))) == 1
+
+
 if __name__ == "__main__":
     unittest.main()
