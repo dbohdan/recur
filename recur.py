@@ -39,7 +39,7 @@ from typing import Callable, Literal
 from simpleeval import EvalWithCompoundTypes
 
 MAX_DELAY = 366 * 24 * 60 * 60
-VERSION = "0.2.0"
+VERSION = "0.2.1"
 
 
 class RelativeTimeLevelSuffixFormatter(logging.Formatter):
@@ -272,7 +272,7 @@ def main() -> None:
 
         if not isinstance(result, bool):
             msg = (
-                "retry condition must return a boolean; "
+                "success condition must return a boolean; "
                 f"got type {type(result).__name__!r}"
             )
             raise TypeError(msg)
