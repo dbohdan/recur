@@ -52,7 +52,7 @@ options:
   -t TRIES, --tries TRIES
                         maximum number of attempts (negative for infinite,
                         default: 3)
-  -v, --verbose         announce failures
+  -v, --verbose         announce exit codes
 ```
 
 recur exits with the last command's exit code, unless the user overrides this in the condition.

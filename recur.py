@@ -257,7 +257,7 @@ def main() -> None:
         "-v",
         "--verbose",
         action="store_true",
-        help="announce failures",
+        help="announce exit codes",
     )
 
     args = parser.parse_args()
