@@ -1,8 +1,8 @@
 # recur
 
-This command-line tool runs a single command repeatedly until it succeeds or allowed attempts run out. It implements optional [exponential backoff](https://en.wikipedia.org/wiki/Exponential_backoff) with configurable [jitter](https://en.wikipedia.org/wiki/Thundering_herd_problem#Mitigation).
+This command-line tool runs a single command repeatedly until it succeeds or allowed attempts run out. It implements optional [exponential backoff](https://en.wikipedia.org/wiki/Exponential_backoff) with configurable [jitter](https://en.wikipedia.org/wiki/Thundering_herd_problem#Mitigation). It lets you define the success condition.
 
-It was inspired by [retry-cli](https://github.com/tirsen/retry-cli). I wanted to have something like it, but as a single-file script without the Node.js dependency.
+It was inspired by [retry-cli](https://github.com/tirsen/retry-cli). I wanted to have something like it, but without the Node.js dependency. There are other projects like it. A list of alternatives is included at the end of this document.
 
 
 ## Requirements
@@ -41,8 +41,8 @@ options:
                         multiplier applied to delay on every attempt (default:
                         1, no backoff)
   -c COND, --condition COND
-                        retry condition (simpleeval expression, default: "code
-                        != 0")
+                        success condition (simpleeval expression, default:
+                        "code == 0")
   -d DELAY, --delay DELAY
                         constant or initial exponential delay (seconds,
                         default: 0)
@@ -57,31 +57,38 @@ options:
   -v, --verbose         announce failures
 ```
 
-recur exits with the last command's exit code, unless this is overridden in the condition.
+recur exits with the last command's exit code, unless the user overrides this in the condition.
 
-The CLI options are modeled after the parameters of the [`retry`](https://github.com/invl/retry) decorator, which Python programmers may recognize, but recur does not use it. The jitter behavior is different from `retry`. Jitter is applied starting with the first retry, not the second. I think this is what the user expects. A single-number jitter argument results in random jitter picked uniformly from between zero and that number every time.
+The CLI options are modeled after the parameters of the [`retry`](https://github.com/invl/retry) decorator, which Python programmers may recognize. However, recur does not use it. The jitter (random delay) behavior is different from `retry`. Jitter is applied starting with the first retry, not the second. I think this is what the user expects. A single-number jitter argument results in random jitter.
 
 
 ## Conditions
 
-recur is lightly scriptable. It allows you to specify the retry condition using the simpleeval [expression language](https://github.com/danthedeckie/simpleeval#operators), which is a subset of Python. The default condition is `code != 0`, which means recur should retry when the exit code of the last command is not zero. You can use the following variables in the condition expression:
+recur is lightly scriptable. It allows the user to specify the success condition using the simpleeval [expression language](https://github.com/danthedeckie/simpleeval#operators), which is a subset of Python. The default condition is `code == 0`. It means recur should stop retrying when the exit code of the command is zero. You can use the following variables in the condition expression:
 
-* `attempt`: `int` — the number of the current attempt, starting at one. If you want to use this variable to control when recur stops, pass it the option `--tries -1` for otherwise infinite attempts. 
+* `attempt`: `int` — the number of the current attempt, starting at one. If you want to use this variable to control when recur stops, pass it the option `--tries -1` to recur for otherwise infinite attempts. 
 * `code`: `int` — the exit code of the last command.
 * `time`: `float` — the time the last command took, in seconds.
-* `total_time`: `float` — the total run time.
-*  `max_tries`: `int` — the value of `--tries`.
+* `total_time`: `float` — the total run time, again in seconds.
+*  `max_tries`: `int` — the value of the option `--tries`.
 
 recur defines one custom function:
 
 * `exit(code: int) -> None` — exit with the exit code.
 
-With this function, you can change the exit code. For example, you can make recur exit with success when the command fails.
+This function allows the user to override the default behavior of returning the last command's exit code. For example, you can make recur exit with success when the command fails.
 
 ```shell
-recur --condition 'exit(0) if code > 0 else True' --tries -1 foo --bar
+recur --condition 'code != 0 and exit(0)' sh -c 'exit 1'
+# or
+recur --condition 'exit(0) if code != 0 else False' sh -c 'exit 1'
 ```
 
+In the following example we stop early and do not retry when the command's exit code indicates incorrect usage.
+
+```shell
+recur --condition 'code == 0 or (code in {1, 2, 3, 4} and exit(code))' curl "$url"
+```
 
 ## License
 

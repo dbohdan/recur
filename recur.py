@@ -115,7 +115,7 @@ def retry_command(
     fixed_delay: Interval,
     max_tries: int,
     random_delay: Interval,
-    should_retry: ConditionFunc,
+    success: ConditionFunc,
     start_time: float,
 ) -> int:
     code = 0
@@ -141,7 +141,7 @@ def retry_command(
             max_tries=max_tries,
         )
 
-        if not should_retry(attempt):
+        if success(attempt):
             return code
 
     return code
@@ -186,8 +186,8 @@ def main() -> None:
     parser.add_argument(
         "-c",
         "--condition",
-        default="code != 0",
-        help=('retry condition (simpleeval expression, default: "%(default)s")'),
+        default="code == 0",
+        help=('success condition (simpleeval expression, default: "%(default)s")'),
         metavar="COND",
         type=str,
     )
@@ -260,7 +260,7 @@ def main() -> None:
     start_time = time.time()
     configure_logging(start_time=start_time, verbose=args.verbose)
 
-    def should_retry(attempt: Attempt) -> bool:
+    def success(attempt: Attempt) -> bool:
         evaluator = EvalWithCompoundTypes(
             functions={"exit": sys.exit},
             names=vars(attempt),
@@ -283,7 +283,7 @@ def main() -> None:
             fixed_delay=Interval(args.delay, args.max_delay),
             max_tries=args.tries,
             random_delay=args.jitter,
-            should_retry=should_retry,
+            success=success,
             start_time=start_time,
         )
         sys.exit(code)

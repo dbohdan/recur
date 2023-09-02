@@ -95,7 +95,7 @@ class TestRecurPOSIX(unittest.TestCase):
         assert len(re.findall("(?s)hello", run("echo", "hello"))) == 1
 
     def test_condition_attempt(self) -> None:
-        output = run("--condition", "attempt < 5", "--tries", "-1", "echo", "hello")
+        output = run("--condition", "attempt == 5", "--tries", "-1", "echo", "hello")
         assert len(re.findall("(?s)hello", output)) == 5
 
     def test_condition_code_and_exit(self) -> None:
@@ -104,7 +104,7 @@ class TestRecurPOSIX(unittest.TestCase):
     def test_condition_time_and_total_time(self) -> None:
         output = run(
             "--condition",
-            "total_time - time < 0.01",
+            "total_time - time > 0.01",
             PYTHON_COMMAND,
             "-c",
             "import time; time.sleep(0.1); print('T')",
