@@ -28,10 +28,12 @@ from pathlib import Path
 
 import pytest
 
+PYTHON_COMMAND = sys.executable
 TEST_PATH = Path(__file__).resolve().parent
+
 COMMAND = shlex.split(os.environ.get("RECUR_COMMAND", ""))
-if [] == COMMAND:
-    COMMAND = [sys.executable, Path(TEST_PATH, "..", "recur.py")]
+if not COMMAND:
+    COMMAND = [PYTHON_COMMAND, Path(TEST_PATH, "..", "recur.py")]
 
 
 def run(
@@ -91,6 +93,23 @@ class TestRecurPOSIX(unittest.TestCase):
 
     def test_stop_on_success(self) -> None:
         assert len(re.findall("(?s)hello", run("echo", "hello"))) == 1
+
+    def test_condition_attempt(self) -> None:
+        output = run("--condition", "attempt < 5", "--tries", "-1", "echo", "hello")
+        assert len(re.findall("(?s)hello", output)) == 5
+
+    def test_condition_code_and_exit(self) -> None:
+        run("--condition", "exit(0) if code == 99 else 'fail'", "sh", "-c", "exit 99")
+
+    def test_condition_time_and_total_time(self) -> None:
+        output = run(
+            "--condition",
+            "total_time - time < 0.01",
+            PYTHON_COMMAND,
+            "-c",
+            "import time; time.sleep(0.1); print('T')",
+        )
+        assert len(re.findall("(?s)T", output)) == 2
 
 
 @unittest.skipUnless(os.name == "nt", "requires a Windows OS")

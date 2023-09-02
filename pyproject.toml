@@ -23,6 +23,7 @@ classifiers = [
 
 [tool.poetry.dependencies]
 python = "^3.8"
+simpleeval = "^0.9.13"
 
 [tool.poetry.group.dev.dependencies]
 black = "^23.7.0"

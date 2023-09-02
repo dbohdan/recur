@@ -33,7 +33,10 @@ import subprocess as sp
 import sys
 import time
 import traceback
-from typing import Literal
+from dataclasses import dataclass
+from typing import Callable, Literal
+
+from simpleeval import EvalWithCompoundTypes
 
 MAX_DELAY = 366 * 24 * 60 * 60
 VERSION = "0.2.0"
@@ -73,11 +76,29 @@ class RelativeTimeLevelSuffixFormatter(logging.Formatter):
         return f"{hours:02d}:{minutes:02d}:{seconds:02d}.{10 * frac:01.0f}"
 
 
-def configure_logging(*, verbose: bool):
+@dataclass
+class Interval:
+    start: float
+    end: float
+
+
+@dataclass
+class Attempt:
+    attempt: int
+    code: int
+    time: float
+    total_time: float
+    max_tries: int
+
+
+ConditionFunc = Callable[[Attempt], bool]
+
+
+def configure_logging(*, start_time: float, verbose: bool):
     handler = logging.StreamHandler()
     formatter = RelativeTimeLevelSuffixFormatter(
         fmt="recur [{asctime}]{levelsuffix}: {message}",
-        reftime=time.time(),
+        reftime=start_time,
         style="{",
     )
     handler.setFormatter(formatter)
@@ -91,27 +112,37 @@ def retry_command(
     args: list[str],
     *,
     backoff: float,
-    min_fixed_delay: float,
-    max_fixed_delay: float,
-    min_random_delay: float,
-    max_random_delay: float,
-    tries: int,
+    fixed_delay: Interval,
+    max_tries: int,
+    random_delay: Interval,
+    should_retry: ConditionFunc,
+    start_time: float,
 ) -> int:
     code = 0
-    iterator = range(tries) if tries >= 0 else itertools.count()
 
+    iterator = range(max_tries) if max_tries >= 0 else itertools.count()
     for i in iterator:
         if i > 0:
-            fixed_delay = min(max_fixed_delay, min_fixed_delay * backoff**i)
-            random_delay = random.uniform(min_random_delay, max_random_delay)
-            time.sleep(fixed_delay + random_delay)
+            curr_fixed = min(fixed_delay.end, fixed_delay.start * backoff**i)
+            curr_random = random.uniform(random_delay.start, random_delay.end)
+            time.sleep(curr_fixed + curr_random)
 
+        attempt_start = time.time()
         completed = sp.run(args, check=False)
         code = completed.returncode
         logging.info("command exited with code %u", code)
+        attempt_end = time.time()
 
-        if code == 0:
-            return 0
+        attempt = Attempt(
+            attempt=i + 1,
+            code=code,
+            time=attempt_end - attempt_start,
+            total_time=attempt_end - start_time,
+            max_tries=max_tries,
+        )
+
+        if not should_retry(attempt):
+            return code
 
     return code
 
@@ -152,6 +183,15 @@ def main() -> None:
         type=float,
     )
 
+    parser.add_argument(
+        "-c",
+        "--condition",
+        default="code != 0",
+        help=('retry condition (simpleeval expression, default: "%(default)s")'),
+        metavar="COND",
+        type=str,
+    )
+
     def delay(arg: str) -> float:
         value = float(arg)
 
@@ -169,7 +209,7 @@ def main() -> None:
         type=delay,
     )
 
-    def jitter(arg: str) -> tuple[float, float]:
+    def jitter(arg: str) -> Interval:
         commas = arg.count(",")
         if commas == 0:
             head, tail = "0", arg
@@ -179,7 +219,7 @@ def main() -> None:
             msg = "jitter range must contain no more than one comma"
             raise ValueError(msg)
 
-        return (delay(head), delay(tail))
+        return Interval(delay(head), delay(tail))
 
     parser.add_argument(
         "-j",
@@ -217,17 +257,34 @@ def main() -> None:
     )
 
     args = parser.parse_args()
-    configure_logging(verbose=args.verbose)
+    start_time = time.time()
+    configure_logging(start_time=start_time, verbose=args.verbose)
+
+    def should_retry(attempt: Attempt) -> bool:
+        evaluator = EvalWithCompoundTypes(
+            functions={"exit": sys.exit},
+            names=vars(attempt),
+        )
+        result = evaluator.eval(args.condition)
+
+        if not isinstance(result, bool):
+            msg = (
+                "retry condition must return a boolean; "
+                f"got type {type(result).__name__!r}"
+            )
+            raise TypeError(msg)
+
+        return result
 
     try:
         code = retry_command(
             [args.command, *args.args],
             backoff=args.backoff,
-            min_fixed_delay=args.delay,
-            max_fixed_delay=args.max_delay,
-            min_random_delay=args.jitter[0],
-            max_random_delay=args.jitter[1],
-            tries=args.tries,
+            fixed_delay=Interval(args.delay, args.max_delay),
+            max_tries=args.tries,
+            random_delay=args.jitter,
+            should_retry=should_retry,
+            start_time=start_time,
         )
         sys.exit(code)
     except KeyboardInterrupt:

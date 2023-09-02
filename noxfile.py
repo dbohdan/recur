@@ -15,7 +15,7 @@ def source_files() -> list[str]:
 
 @nox.session(python=PYTHON_VERSIONS, tags=["test"])
 def tests(session: nox.Session) -> None:
-    session.install("pytest")
+    session.install("pytest == 7.*", "simpleeval == 0.9.*")
     session.run("pytest")
 
 

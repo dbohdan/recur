@@ -2,14 +2,12 @@
 
 This command-line tool runs a single command repeatedly until it succeeds or allowed attempts run out. It implements optional [exponential backoff](https://en.wikipedia.org/wiki/Exponential_backoff) with configurable [jitter](https://en.wikipedia.org/wiki/Thundering_herd_problem#Mitigation).
 
-It was inspired by [retry-cli](https://github.com/tirsen/retry-cli). I wanted to have something like it, but as a single-file script without the Node.js dependency. The result depends only on Python and its standard library.
-
-The CLI options are modeled after the parameters of the [`retry`](https://github.com/invl/retry) decorator, which Python programmers may know. However, I do not use the `retry` package or its code. The jitter behavior is different from `retry`. Jitter is applied starting with the first retry, not the second. I think this is what the user expects. A single-number jitter argument results in random jitter picked uniformly from between zero and that number every time.
+It was inspired by [retry-cli](https://github.com/tirsen/retry-cli). I wanted to have something like it, but as a single-file script without the Node.js dependency.
 
 
 ## Requirements
 
-Python 3.8 or later.
+Python 3.8 or later, PyPI package `simpleeval` (installed automatically with `recur-command`).
 
 
 ## Installation
@@ -26,8 +24,8 @@ pip install --user recur-command
 ## Usage
 
 ```none
-usage: recur [-h] [-V] [-b BACKOFF] [-d DELAY] [-j JITTER] [-m MAX] [-t TRIES]
-             [-v]
+usage: recur [-h] [-V] [-b BACKOFF] [-c COND] [-d DELAY] [-j JITTER] [-m MAX]
+             [-t TRIES] [-v]
              command ...
 
 Retry a command with exponential backoff and jitter.
@@ -42,6 +40,9 @@ options:
   -b BACKOFF, --backoff BACKOFF
                         multiplier applied to delay on every attempt (default:
                         1, no backoff)
+  -c COND, --condition COND
+                        retry condition (simpleeval expression, default: "code
+                        != 0")
   -d DELAY, --delay DELAY
                         constant or initial exponential delay (seconds,
                         default: 0)
@@ -54,6 +55,31 @@ options:
                         maximum number of attempts (negative for infinite,
                         default: 3)
   -v, --verbose         announce failures
+```
+
+recur exits with the last command's exit code, unless this is overridden in the condition.
+
+The CLI options are modeled after the parameters of the [`retry`](https://github.com/invl/retry) decorator, which Python programmers may recognize, but recur does not use it. The jitter behavior is different from `retry`. Jitter is applied starting with the first retry, not the second. I think this is what the user expects. A single-number jitter argument results in random jitter picked uniformly from between zero and that number every time.
+
+
+## Conditions
+
+recur is lightly scriptable. It allows you to specify the retry condition using the simpleeval [expression language](https://github.com/danthedeckie/simpleeval#operators), which is a subset of Python. The default condition is `code != 0`, which means recur should retry when the exit code of the last command is not zero. You can use the following variables in the condition expression:
+
+* `attempt`: `int` — the number of the current attempt, starting at one. If you want to use this variable to control when recur stops, pass it the option `--tries -1` for otherwise infinite attempts. 
+* `code`: `int` — the exit code of the last command.
+* `time`: `float` — the time the last command took, in seconds.
+* `total_time`: `float` — the total run time.
+*  `max_tries`: `int` — the value of `--tries`.
+
+recur defines one custom function:
+
+* `exit(code: int) -> None` — exit with the exit code.
+
+With this function, you can change the exit code. For example, you can make recur exit with success when the command fails.
+
+```shell
+recur --condition 'exit(0) if code > 0 else True' --tries -1 foo --bar
 ```
 
 
