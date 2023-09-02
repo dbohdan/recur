@@ -1,8 +1,6 @@
 # recur
 
-This command-line tool runs a single command repeatedly until it succeeds or allowed attempts run out. It implements optional [exponential backoff](https://en.wikipedia.org/wiki/Exponential_backoff) with configurable [jitter](https://en.wikipedia.org/wiki/Thundering_herd_problem#Mitigation). It lets you define the success condition.
-
-It was inspired by [retry-cli](https://github.com/tirsen/retry-cli). I wanted to have something like it, but without the Node.js dependency. There are other projects like it. A list of alternatives is included at the end of this document.
+**recur** is a command-line tool that runs a single command repeatedly until it succeeds or allowed attempts run out. It implements optional [exponential backoff](https://en.wikipedia.org/wiki/Exponential_backoff) with configurable [jitter](https://en.wikipedia.org/wiki/Thundering_herd_problem#Mitigation). It lets you define the success condition.
 
 
 ## Requirements
@@ -59,12 +57,14 @@ options:
 
 recur exits with the last command's exit code, unless the user overrides this in the condition.
 
-The CLI options are modeled after the parameters of the [`retry`](https://github.com/invl/retry) decorator, which Python programmers may recognize. However, recur does not use it. The jitter (random delay) behavior is different from `retry`. Jitter is applied starting with the first retry, not the second. I think this is what the user expects. A single-number jitter argument results in random jitter.
+The CLI options are modeled after the parameters of the [`retry`](https://github.com/invl/retry) decorator, which Python programmers may recognize. However, recur does not use `retry`. The jitter (random delay) behavior is different. Jitter is applied starting with the first retry, not the second. I think this is what the user expects. A single-number jitter argument results in random jitter.     
 
 
 ## Conditions
 
-recur is lightly scriptable. It allows the user to specify the success condition using the simpleeval [expression language](https://github.com/danthedeckie/simpleeval#operators), which is a subset of Python. The default condition is `code == 0`. It means recur should stop retrying when the exit code of the command is zero. You can use the following variables in the condition expression:
+recur is lightly scriptable. It allows you to specify the success condition using the simpleeval [expression language](https://github.com/danthedeckie/simpleeval#operators), which is a subset of Python. The default condition is `code == 0`. It means recur should stop retrying when the exit code of the command is zero.
+
+You can use the following variables in the condition expression:
 
 * `attempt`: `int` — the number of the current attempt, starting at one. If you want to use this variable to control when recur stops, pass it the option `--tries -1` to recur for otherwise infinite attempts. 
 * `code`: `int` — the exit code of the last command.
@@ -76,7 +76,7 @@ recur defines one custom function:
 
 * `exit(code: int) -> None` — exit with the exit code.
 
-This function allows the user to override the default behavior of returning the last command's exit code. For example, you can make recur exit with success when the command fails.
+This function allows you to override the default behavior of returning the last command's exit code. For example, you can make recur exit with success when the command fails.
 
 ```shell
 recur --condition 'code != 0 and exit(0)' sh -c 'exit 1'
@@ -96,6 +96,8 @@ MIT.
 
 
 ## Alternatives
+
+recur was inspired by [retry-cli](https://github.com/tirsen/retry-cli). I wanted something like retry-cli, but without the Node.js dependency. There are other tools like this.
 
 * [retry (joshdk)](https://github.com/joshdk/retry). Written in Go. `go install github.com/joshdk/retry@master`.
 * [retry (kadwanev)](https://github.com/kadwanev/retry). Written in Bash.
