@@ -297,7 +297,7 @@ def main() -> None:
         line = frame.lineno
 
         logging.error(
-            "%s (debug information: line %u, exception %s)",
+            "%s (debug info: line %u, exception %s)",
             e,
             line,
             type(e).__name__,
