@@ -28,12 +28,16 @@ from pathlib import Path
 
 import pytest
 
-PYTHON_COMMAND = sys.executable
+PYTHON = sys.executable
 TEST_PATH = Path(__file__).resolve().parent
 
 COMMAND = shlex.split(os.environ.get("RECUR_COMMAND", ""))
 if not COMMAND:
-    COMMAND = [PYTHON_COMMAND, Path(TEST_PATH, "..", "recur.py")]
+    COMMAND = [PYTHON, Path(TEST_PATH, "..", "recur.py")]
+
+
+PYTHON_EXIT_99 = [PYTHON, "-c", "raise SystemExit(99)"]
+PYTHON_HELLO = [PYTHON, "-c", "print('hello')"]
 
 
 def run(
@@ -65,26 +69,35 @@ class TestRecur(unittest.TestCase):
     def test_version(self) -> None:
         assert re.search("\\d+\\.\\d+\\.\\d+", run("--version"))
 
-
-@unittest.skipUnless(os.name == "posix", "requires a POSIX OS")
-class TestRecurPOSIX(unittest.TestCase):
     def test_echo(self) -> None:
-        assert re.search("(?s)hello", run("echo", "hello"))
+        assert re.search("(?s)hello", run(*PYTHON_HELLO))
 
     def test_exit_code(self) -> None:
         with pytest.raises(subprocess.CalledProcessError) as e:
-            run("sh", "-c", "exit 99")
+            run(*PYTHON_EXIT_99)
         assert e.value.returncode == 99
 
     def test_options(self) -> None:
-        run("-b", "1", "-d", "0", "--jitter", "0,0.1", "-m", "0", "-t", "0", "false")
+        run(
+            "-b",
+            "1",
+            "-d",
+            "0",
+            "--jitter",
+            "0,0.1",
+            "-m",
+            "0",
+            "-t",
+            "0",
+            *PYTHON_EXIT_99,
+        )
 
     def test_verbose(self) -> None:
         output = run(
             "-v",
             "-t",
             "3",
-            "false",
+            *PYTHON_EXIT_99,
             check=False,
             return_stdout=False,
             return_stderr=True,
@@ -92,35 +105,24 @@ class TestRecurPOSIX(unittest.TestCase):
         assert len(re.findall("command exited with code", output)) == 3
 
     def test_stop_on_success(self) -> None:
-        assert len(re.findall("(?s)hello", run("echo", "hello"))) == 1
+        assert len(re.findall("(?s)hello", run(*PYTHON_HELLO))) == 1
 
     def test_condition_attempt(self) -> None:
-        output = run("--condition", "attempt == 5", "--tries", "-1", "echo", "hello")
+        output = run("--condition", "attempt == 5", "--tries", "-1", *PYTHON_HELLO)
         assert len(re.findall("(?s)hello", output)) == 5
 
     def test_condition_code_and_exit(self) -> None:
-        run("--condition", "exit(0) if code == 99 else 'fail'", "sh", "-c", "exit 99")
+        run("--condition", "exit(0) if code == 99 else 'fail'", *PYTHON_EXIT_99)
 
     def test_condition_time_and_total_time(self) -> None:
         output = run(
             "--condition",
             "total_time - time > 0.01",
-            PYTHON_COMMAND,
+            PYTHON,
             "-c",
             "import time; time.sleep(0.1); print('T')",
         )
         assert len(re.findall("(?s)T", output)) == 2
-
-
-@unittest.skipUnless(os.name == "nt", "requires a Windows OS")
-class TestRecurWindows(unittest.TestCase):
-    def test_exit_code(self) -> None:
-        with pytest.raises(subprocess.CalledProcessError) as e:
-            run("cmd.exe", "/c", "exit 99")
-        assert e.value.returncode == 99
-
-    def test_stop_on_success(self) -> None:
-        assert len(re.findall("(?s)hello", run("cmd.exe", "/c", "echo", "hello"))) == 1
 
 
 if __name__ == "__main__":
