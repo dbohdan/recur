@@ -117,7 +117,7 @@ class TestRecur(unittest.TestCase):
     def test_condition_time_and_total_time(self) -> None:
         output = run(
             "--condition",
-            "total_time - time > 0.01",
+            "total_time > time",
             PYTHON,
             "-c",
             "import time; time.sleep(0.1); print('T')",

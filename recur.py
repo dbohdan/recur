@@ -116,7 +116,7 @@ def retry_command(
     max_tries: int,
     random_delay: Interval,
     success: ConditionFunc,
-    start_time: float,
+    start_time: float | None = None,
 ) -> int:
     code = 0
 
@@ -128,9 +128,13 @@ def retry_command(
             time.sleep(curr_fixed + curr_random)
 
         attempt_start = time.time()
+        if start_time is None:
+            start_time = attempt_start
+
         completed = sp.run(args, check=False)
         code = completed.returncode
         logging.info("command exited with code %u", code)
+
         attempt_end = time.time()
 
         attempt = Attempt(
@@ -257,8 +261,7 @@ def main() -> None:
     )
 
     args = parser.parse_args()
-    start_time = time.time()
-    configure_logging(start_time=start_time, verbose=args.verbose)
+    configure_logging(start_time=time.time(), verbose=args.verbose)
 
     def success(attempt: Attempt) -> bool:
         evaluator = EvalWithCompoundTypes(
@@ -284,7 +287,6 @@ def main() -> None:
             max_tries=args.tries,
             random_delay=args.jitter,
             success=success,
-            start_time=start_time,
         )
         sys.exit(code)
     except KeyboardInterrupt:
