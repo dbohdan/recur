@@ -62,14 +62,14 @@ The CLI options are modeled after the parameters of the [`retry`](https://github
 
 ## Conditions
 
-recur is lightly scriptable. It allows you to specify the success condition using the simpleeval [expression language](https://github.com/danthedeckie/simpleeval#operators), which is a subset of Python. The default condition is `code == 0`. It means recur should stop retrying when the exit code of the command is zero.
+recur supports a limited form of scripting. It allows you to set the success condition using the simpleeval [expression language](https://github.com/danthedeckie/simpleeval#operators), which is a subset of Python. The default condition is `code == 0`. It means recur will stop retrying when the exit code of the command is zero.
 
 You can use the following variables in the condition expression:
 
-* `attempt`: `int` — the number of the current attempt, starting at one. If you want to use this variable to control when recur stops, pass it the option `--tries -1` to recur for otherwise infinite attempts. 
+* `attempt`: `int` — the number of the current attempt, starting at one. Combine with `--tries -1` to use instead of the built-in attempt counter. 
 * `code`: `int` — the exit code of the last command.
-* `time`: `float` — the time the last command took, in seconds.
-* `total_time`: `float` — the total run time, again in seconds.
+* `time`: `float` — the time the most recent attempt took, in seconds.
+* `total_time`: `float` — the time between the start of the first attempt and the end of the most recent, again in seconds.
 *  `max_tries`: `int` — the value of the option `--tries`.
 
 recur defines one custom function:
