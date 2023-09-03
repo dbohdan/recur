@@ -70,7 +70,7 @@ class TestRecur(unittest.TestCase):
         assert re.search("\\d+\\.\\d+\\.\\d+", run("--version"))
 
     def test_echo(self) -> None:
-        assert re.search("(?s)hello", run(*PYTHON_HELLO))
+        assert re.search("hello", run(*PYTHON_HELLO))
 
     def test_exit_code(self) -> None:
         with pytest.raises(subprocess.CalledProcessError) as e:
@@ -105,11 +105,11 @@ class TestRecur(unittest.TestCase):
         assert len(re.findall("command exited with code", output)) == 3
 
     def test_stop_on_success(self) -> None:
-        assert len(re.findall("(?s)hello", run(*PYTHON_HELLO))) == 1
+        assert len(re.findall("hello", run(*PYTHON_HELLO))) == 1
 
     def test_condition_attempt(self) -> None:
         output = run("--condition", "attempt == 5", "--tries", "-1", *PYTHON_HELLO)
-        assert len(re.findall("(?s)hello", output)) == 5
+        assert len(re.findall("hello", output)) == 5
 
     def test_condition_code_and_exit(self) -> None:
         run("--condition", "exit(0) if code == 99 else 'fail'", *PYTHON_EXIT_99)
@@ -122,7 +122,7 @@ class TestRecur(unittest.TestCase):
             "-c",
             "import time; time.sleep(0.1); print('T')",
         )
-        assert len(re.findall("(?s)T", output)) == 2
+        assert len(re.findall("T", output)) == 2
 
 
 if __name__ == "__main__":
