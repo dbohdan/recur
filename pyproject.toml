@@ -21,6 +21,11 @@ classifiers = [
   "Topic :: Utilities",
 ]
 
+include = [
+  { path = "noxfile.py", format = "sdist" },
+  { path = "tests/", format = "sdist" },
+]
+
 [tool.poetry.dependencies]
 python = "^3.8"
 simpleeval = "^0.9.13"
