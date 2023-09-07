@@ -44,6 +44,9 @@ build-backend = "poetry.core.masonry.api"
 [tool.poetry.scripts]
 recur = 'recur:main'
 
+[tool.pyright]
+pythonVersion = "3.8"
+
 [tool.ruff]
 select = [
   "A",     # flake8-builtins
@@ -103,6 +106,7 @@ select = [
   "W",     # pycodestyle
   "YTT",   # flake8-2020
 ]
+target-version = "py38"
 
 [tool.ruff.per-file-ignores]
 "recur.py" = [

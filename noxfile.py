@@ -32,8 +32,6 @@ def lint(session: nox.Session) -> None:
         "run",
         "ruff",
         "check",
-        "--target-version",
-        "py38",
         *extra,
         *source_files(),
     )
@@ -42,4 +40,4 @@ def lint(session: nox.Session) -> None:
 @nox.session(name="type", python=False, tags=["check"])
 def type_(session: nox.Session) -> None:
     files = source_files()
-    session.run("poetry", "run", "pyright", "--pythonversion", "3.8", *files)
+    session.run("poetry", "run", "pyright", *files)
