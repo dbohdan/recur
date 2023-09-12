@@ -38,8 +38,9 @@ from typing import Callable, Literal
 
 from simpleeval import EvalWithCompoundTypes
 
+__version__ = "0.2.1"
+
 MAX_DELAY = 366 * 24 * 60 * 60
-VERSION = "0.2.1"
 
 
 class RelativeTimeLevelSuffixFormatter(logging.Formatter):
@@ -173,7 +174,7 @@ def main() -> None:
         "-V",
         "--version",
         action="version",
-        version=VERSION,
+        version=__version__,
     )
 
     parser.add_argument(
