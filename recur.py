@@ -34,6 +34,7 @@ import sys
 import time
 import traceback
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Callable, Literal
 
 from simpleeval import EvalWithCompoundTypes
@@ -299,11 +300,17 @@ def main() -> None:
     except Exception as e:  # noqa: BLE001
         tb = sys.exc_info()[-1]
         frame = traceback.extract_tb(tb)[-1]
+        file_info = (
+            f"file {Path(frame.filename).name!r}, "
+            if "__file__" in globals() and frame.filename != __file__
+            else ""
+        )
         line = frame.lineno
 
         logging.error(
-            "%s (debug info: line %u, exception %s)",
+            "%s (debug info: %sline %d, exception %r)",
             e,
+            file_info,
             line,
             type(e).__name__,
         )
