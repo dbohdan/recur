@@ -48,7 +48,7 @@ options:
                         additional random delay (maximum seconds or "min,max"
                         seconds, default: "0,0")
   -m MAX, --max-delay MAX
-                        maximum delay (seconds, default: 86400)
+                        maximum delay (seconds, default: 3600)
   -t TRIES, --tries TRIES
                         maximum number of attempts (negative for infinite,
                         default: 3)

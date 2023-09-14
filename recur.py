@@ -40,7 +40,7 @@ from simpleeval import EvalWithCompoundTypes
 
 __version__ = "0.3.0"
 
-MAX_DELAY = 366 * 24 * 60 * 60
+MAX_ALLOWED_DELAY = 366 * 24 * 60 * 60
 
 
 class RelativeTimeLevelSuffixFormatter(logging.Formatter):
@@ -204,8 +204,8 @@ def main() -> None:
     def delay(arg: str) -> float:
         value = float(arg)
 
-        if value < 0 or value > MAX_DELAY:
-            msg = f"delay must be between zero and {MAX_DELAY}"
+        if value < 0 or value > MAX_ALLOWED_DELAY:
+            msg = f"delay must be between zero and {MAX_ALLOWED_DELAY}"
             raise ValueError(msg)
 
         return value
@@ -244,7 +244,7 @@ def main() -> None:
     parser.add_argument(
         "-m",
         "--max-delay",
-        default=24 * 60 * 60,
+        default=60 * 60,
         help="maximum delay (seconds, default: %(default)s)",
         metavar="MAX",
         type=delay,
