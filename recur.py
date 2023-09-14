@@ -38,7 +38,7 @@ from typing import Callable, Literal
 
 from simpleeval import EvalWithCompoundTypes
 
-__version__ = "0.2.1"
+__version__ = "0.3.0"
 
 MAX_DELAY = 366 * 24 * 60 * 60
 
@@ -121,10 +121,14 @@ def retry_command(
 ) -> int:
     code = 0
 
-    iterator = range(max_tries) if max_tries >= 0 else itertools.count()
-    for i in iterator:
-        if i > 0:
-            curr_fixed = min(fixed_delay.end, fixed_delay.start * backoff**i)
+    # Count attempts from one.
+    iterator = range(1, max_tries + 1) if max_tries >= 0 else itertools.count(1)
+    for attempt_number in iterator:
+        if attempt_number > 1:
+            curr_fixed = min(
+                fixed_delay.end,
+                fixed_delay.start * backoff**attempt_number,
+            )
             curr_random = random.uniform(random_delay.start, random_delay.end)
             time.sleep(curr_fixed + curr_random)
 
@@ -134,12 +138,12 @@ def retry_command(
 
         completed = sp.run(args, check=False)
         code = completed.returncode
-        logging.info("command exited with code %u", code)
+        logging.info("command exited with code %d on attempt %d", code, attempt_number)
 
         attempt_end = time.time()
 
         attempt = Attempt(
-            attempt=i + 1,
+            attempt=attempt_number,
             code=code,
             time=attempt_end - attempt_start,
             total_time=attempt_end - start_time,
@@ -258,7 +262,7 @@ def main() -> None:
         "-v",
         "--verbose",
         action="store_true",
-        help="announce exit codes",
+        help="announce exit code and attempt number",
     )
 
     args = parser.parse_args()

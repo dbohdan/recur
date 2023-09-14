@@ -101,8 +101,9 @@ class TestRecur(unittest.TestCase):
             check=False,
             return_stdout=False,
             return_stderr=True,
-        )
+        ).rstrip()
         assert len(re.findall("command exited with code", output)) == 3
+        assert re.search("on attempt 3$", output)
 
     def test_stop_on_success(self) -> None:
         assert len(re.findall("hello", run(*PYTHON_HELLO))) == 1
