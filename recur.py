@@ -255,7 +255,7 @@ def main() -> None:
         "-t",
         "--tries",
         type=int,
-        default=3,
+        default=5,
         help="maximum number of attempts (negative for infinite, default: %(default)s)",
     )
 

@@ -51,7 +51,7 @@ options:
                         maximum delay (seconds, default: 3600)
   -t TRIES, --tries TRIES
                         maximum number of attempts (negative for infinite,
-                        default: 3)
+                        default: 5)
   -v, --verbose         announce exit code and attempt number
 ```
 
