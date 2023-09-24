@@ -59,6 +59,8 @@ options:
 ```
 
 recur exits with the last command's exit code, unless the user overrides this in the condition.
+When the command is not found during the last attempt,
+recur exits with the code 255.
 
 The CLI options are modeled after the parameters of the [`retry`](https://github.com/invl/retry) decorator, which Python programmers may recognize.
 However, recur does not use `retry`.
@@ -87,7 +89,8 @@ Combine with `--tries -1` to use instead of the built-in attempt counter.
 
 recur defines one custom function:
 
-* `exit(code: int) -> None` — exit with the exit code.
+* `exit(code: int | None) -> None` — exit with the exit code.
+If `code` is `None`, exit with the exit code for a missing command (255).
 
 This function allows you to override the default behavior of returning the last command's exit code.
 For example, you can make recur exit with success when the command fails.
