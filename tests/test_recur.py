@@ -77,6 +77,13 @@ class TestRecur(unittest.TestCase):
             run(*PYTHON_EXIT_99)
         assert e.value.returncode == 99
 
+    def test_command_not_found(self) -> None:
+        with pytest.raises(subprocess.CalledProcessError) as e:
+            run(
+                "no-such-command-should-exist",
+            )
+        assert e.value.returncode == 255
+
     def test_options(self) -> None:
         run(
             "-b",
@@ -106,7 +113,7 @@ class TestRecur(unittest.TestCase):
         assert len(re.findall("command exited with code", output)) == 3
         assert re.search("on attempt 3$", output)
 
-    def test_verbose_no_command(self) -> None:
+    def test_verbose_command_not_found(self) -> None:
         output = run(
             "-v",
             "-t",
@@ -149,6 +156,15 @@ class TestRecur(unittest.TestCase):
             "import time; time.sleep(0.1); print('T')",
         )
         assert len(re.findall("T", output)) == 2
+
+    def test_condition_command_not_found(self) -> None:
+        with pytest.raises(subprocess.CalledProcessError) as e:
+            run(
+                "--condition",
+                "code is None and exit(42)",
+                "no-such-command-should-exist",
+            )
+        assert e.value.returncode == 42
 
 
 if __name__ == "__main__":
