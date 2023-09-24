@@ -137,9 +137,13 @@ def retry_command(
         if start_time is None:
             start_time = attempt_start
 
-        completed = sp.run(args, check=False)
-        code = completed.returncode
-        logging.info("command exited with code %d on attempt %d", code, attempt_number)
+        try:
+            completed = sp.run(args, check=False)
+            code = completed.returncode
+            logging.info("command exited with code %d on attempt %d", code, attempt_number)
+        except FileNotFoundError:
+            code = None
+            logging.info("command was not found on attempt %d", attempt_number)
 
         attempt_end = time.time()
 

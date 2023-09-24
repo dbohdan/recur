@@ -67,7 +67,7 @@ recur supports a limited form of scripting. It allows you to set the success con
 You can use the following variables in the condition expression:
 
 * `attempt`: `int` — the number of the current attempt, starting at one. Combine with `--tries -1` to use instead of the built-in attempt counter. 
-* `code`: `int` — the exit code of the last command.
+* `code`: `int | None` — the exit code of the last command. `None` if the command was not found.
 * `time`: `float` — the time the most recent attempt took, in seconds.
 * `total_time`: `float` — the time between the start of the first attempt and the end of the most recent, again in seconds.
 *  `max_tries`: `int` — the value of the option `--tries`.
