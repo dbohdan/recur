@@ -123,3 +123,5 @@ target-version = "py38"
 
 [tool.ruff.pylint]
 max-args = 8
+max-branches = 20
+max-statements = 100

@@ -35,14 +35,46 @@ import time
 import traceback
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Callable, Literal
+from typing import Callable, Literal, Union
 
 from simpleeval import EvalWithCompoundTypes
 
 __version__ = "0.3.0"
 
+COMMAND_NOT_FOUND_EXIT_CODE = 255
 MAX_ALLOWED_DELAY = 366 * 24 * 60 * 60
 MAX_VERBOSE_LEVEL = 2
+
+
+@dataclass
+class Attempt:
+    attempt: int
+    code: int | None
+    time: float
+    total_time: float
+    max_tries: int
+
+
+ConditionFunc = Callable[[Attempt], bool]
+
+
+@dataclass(frozen=True)
+class Code:
+    code: int
+
+
+@dataclass(frozen=True)
+class CommandNotFound:
+    pass
+
+
+CommandResult = Union[Code, CommandNotFound]
+
+
+@dataclass
+class Interval:
+    start: float
+    end: float
 
 
 class RelativeTimeLevelSuffixFormatter(logging.Formatter):
@@ -81,24 +113,6 @@ class RelativeTimeLevelSuffixFormatter(logging.Formatter):
         return f"{hours:02d}:{minutes:02d}:{seconds:02d}.{10 * frac:01.0f}"
 
 
-@dataclass
-class Interval:
-    start: float
-    end: float
-
-
-@dataclass
-class Attempt:
-    attempt: int
-    code: int
-    time: float
-    total_time: float
-    max_tries: int
-
-
-ConditionFunc = Callable[[Attempt], bool]
-
-
 def configure_logging(*, start_time: float, verbose: int):
     handler = logging.StreamHandler()
     formatter = RelativeTimeLevelSuffixFormatter(
@@ -129,8 +143,8 @@ def retry_command(
     random_delay: Interval,
     success: ConditionFunc,
     start_time: float | None = None,
-) -> int:
-    code = 0
+) -> CommandResult:
+    result: CommandResult = Code(0)
 
     # Count attempts from one.
     iterator = range(1, max_tries + 1) if max_tries >= 0 else itertools.count(1)
@@ -149,26 +163,30 @@ def retry_command(
 
         try:
             completed = sp.run(args, check=False)
-            code = completed.returncode
-            logging.info("command exited with code %d on attempt %d", code, attempt_number)
+            result = Code(completed.returncode)
+            logging.info(
+                "command exited with code %d on attempt %d",
+                result.code,
+                attempt_number,
+            )
         except FileNotFoundError:
-            code = None
+            result = CommandNotFound()
             logging.info("command was not found on attempt %d", attempt_number)
 
         attempt_end = time.time()
 
         attempt = Attempt(
             attempt=attempt_number,
-            code=code,
+            code=None if isinstance(result, CommandNotFound) else result.code,
             time=attempt_end - attempt_start,
             total_time=attempt_end - start_time,
             max_tries=max_tries,
         )
 
         if success(attempt):
-            return code
+            return result
 
-    return code
+    return result
 
 
 def main() -> None:
@@ -287,9 +305,15 @@ def main() -> None:
 
     configure_logging(start_time=time.time(), verbose=args.verbose)
 
+    def exit_from_cond(code: int | None) -> None:
+        if code is None:
+            code = COMMAND_NOT_FOUND_EXIT_CODE
+
+        sys.exit(code)
+
     def success(attempt: Attempt) -> bool:
         evaluator = EvalWithCompoundTypes(
-            functions={"exit": sys.exit},
+            functions={"exit": exit_from_cond},
             names=vars(attempt),
         )
         result = evaluator.eval(args.condition)
@@ -304,7 +328,7 @@ def main() -> None:
         return result
 
     try:
-        code = retry_command(
+        result = retry_command(
             [args.command, *args.args],
             backoff=args.backoff,
             fixed_delay=Interval(args.delay, args.max_delay),
@@ -312,7 +336,12 @@ def main() -> None:
             random_delay=args.jitter,
             success=success,
         )
-        sys.exit(code)
+
+        sys.exit(
+            COMMAND_NOT_FOUND_EXIT_CODE
+            if isinstance(result, CommandNotFound)
+            else result.code,
+        )
     except KeyboardInterrupt:
         pass
     except Exception as e:  # noqa: BLE001
