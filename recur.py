@@ -45,6 +45,9 @@ COMMAND_NOT_FOUND_EXIT_CODE = 255
 MAX_ALLOWED_DELAY = 366 * 24 * 60 * 60
 MAX_VERBOSE_LEVEL = 2
 
+VERBOSE_LEVEL_INFO = 1
+VERBOSE_LEVEL_DEBUG = 2
+
 
 @dataclass
 class Attempt:
@@ -126,12 +129,12 @@ def configure_logging(*, start_time: float, verbose: int):
     root = logging.getLogger()
     root.addHandler(handler)
 
-    if verbose >= MAX_VERBOSE_LEVEL:
+    if verbose >= VERBOSE_LEVEL_DEBUG:
         level = logging.DEBUG
-    elif verbose == 1:
+    elif verbose == VERBOSE_LEVEL_INFO:
         level = logging.INFO
     else:
-        level = logging.DEBUG
+        level = logging.WARNING
     root.setLevel(level)
 
 
