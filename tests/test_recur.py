@@ -102,8 +102,33 @@ class TestRecur(unittest.TestCase):
             return_stdout=False,
             return_stderr=True,
         ).rstrip()
+
         assert len(re.findall("command exited with code", output)) == 3
         assert re.search("on attempt 3$", output)
+
+    def test_verbose_no_command(self) -> None:
+        output = run(
+            "-v",
+            "-t",
+            "3",
+            "no-such-command-should-exist",
+            check=False,
+            return_stdout=False,
+            return_stderr=True,
+        ).rstrip()
+
+        assert len(re.findall("command was not found", output)) == 3
+
+    def test_verbose_too_many(self) -> None:
+        output = run(
+            "-vvv",
+            "",
+            check=False,
+            return_stdout=False,
+            return_stderr=True,
+        ).rstrip()
+
+        assert re.search("error:.*?verbose flags", output)
 
     def test_stop_on_success(self) -> None:
         assert len(re.findall("hello", run(*PYTHON_HELLO))) == 1

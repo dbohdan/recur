@@ -42,6 +42,7 @@ from simpleeval import EvalWithCompoundTypes
 __version__ = "0.3.0"
 
 MAX_ALLOWED_DELAY = 366 * 24 * 60 * 60
+MAX_VERBOSE_LEVEL = 2
 
 
 class RelativeTimeLevelSuffixFormatter(logging.Formatter):
@@ -62,7 +63,9 @@ class RelativeTimeLevelSuffixFormatter(logging.Formatter):
 
     def format(self, record: logging.LogRecord):  # noqa: A003
         record.levelsuffix = (
-            f" {record.levelname.lower()}" if record.levelno >= logging.WARNING else ""
+            f" {record.levelname.lower()}"
+            if record.levelno <= logging.DEBUG or record.levelno >= logging.WARNING
+            else ""
         )
         return super().format(record)
 
@@ -96,7 +99,7 @@ class Attempt:
 ConditionFunc = Callable[[Attempt], bool]
 
 
-def configure_logging(*, start_time: float, verbose: bool):
+def configure_logging(*, start_time: float, verbose: int):
     handler = logging.StreamHandler()
     formatter = RelativeTimeLevelSuffixFormatter(
         fmt="recur [{asctime}]{levelsuffix}: {message}",
@@ -106,8 +109,15 @@ def configure_logging(*, start_time: float, verbose: bool):
     handler.setFormatter(formatter)
 
     root = logging.getLogger()
-    root.setLevel(level=logging.INFO if verbose else logging.WARN)
     root.addHandler(handler)
+
+    if verbose >= MAX_VERBOSE_LEVEL:
+        level = logging.DEBUG
+    elif verbose == 1:
+        level = logging.INFO
+    else:
+        level = logging.DEBUG
+    root.setLevel(level)
 
 
 def retry_command(
@@ -266,11 +276,15 @@ def main() -> None:
     parser.add_argument(
         "-v",
         "--verbose",
-        action="store_true",
+        action="count",
+        default=0,
         help="announce exit code and attempt number",
     )
 
     args = parser.parse_args()
+    if args.verbose > MAX_VERBOSE_LEVEL:
+        parser.error(f"up to {MAX_VERBOSE_LEVEL} verbose flags is allowed")
+
     configure_logging(start_time=time.time(), verbose=args.verbose)
 
     def success(attempt: Attempt) -> bool:
@@ -311,9 +325,9 @@ def main() -> None:
         )
         line = frame.lineno
 
-        logging.error(
-            "%s (debug info: %sline %d, exception %r)",
-            e,
+        logging.error("%s", e)
+        logging.debug(
+            "%sline %d, exception %r",
             file_info,
             line,
             type(e).__name__,
