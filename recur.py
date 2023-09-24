@@ -72,7 +72,7 @@ class CommandNotFound:
 CommandResult = Union[Code, CommandNotFound]
 
 
-@dataclass
+@dataclass(frozen=True)
 class Interval:
     start: float
     end: float
