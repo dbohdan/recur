@@ -50,6 +50,7 @@ MAX_VERBOSE_LEVEL = 2
 class Attempt:
     attempt: int
     code: int | None
+    command_found: bool
     time: float
     total_time: float
     max_tries: int
@@ -178,6 +179,7 @@ def retry_command(
         attempt = Attempt(
             attempt=attempt_number,
             code=None if isinstance(result, CommandNotFound) else result.code,
+            command_found=not isinstance(result, CommandNotFound),
             time=attempt_end - attempt_start,
             total_time=attempt_end - start_time,
             max_tries=max_tries,

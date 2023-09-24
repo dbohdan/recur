@@ -36,6 +36,7 @@ if not COMMAND:
     COMMAND = [PYTHON, Path(TEST_PATH, "..", "recur.py")]
 
 
+NO_SUCH_COMMAND = "no-such-command-should-exist"
 PYTHON_EXIT_99 = [PYTHON, "-c", "raise SystemExit(99)"]
 PYTHON_HELLO = [PYTHON, "-c", "print('hello')"]
 
@@ -80,7 +81,7 @@ class TestRecur(unittest.TestCase):
     def test_command_not_found(self) -> None:
         with pytest.raises(subprocess.CalledProcessError) as e:
             run(
-                "no-such-command-should-exist",
+                NO_SUCH_COMMAND,
             )
         assert e.value.returncode == 255
 
@@ -118,7 +119,7 @@ class TestRecur(unittest.TestCase):
             "-v",
             "-t",
             "3",
-            "no-such-command-should-exist",
+            NO_SUCH_COMMAND,
             check=False,
             return_stdout=False,
             return_stderr=True,
@@ -161,8 +162,17 @@ class TestRecur(unittest.TestCase):
         with pytest.raises(subprocess.CalledProcessError) as e:
             run(
                 "--condition",
+                "command_found or exit(42)",
+                NO_SUCH_COMMAND,
+            )
+        assert e.value.returncode == 42
+
+    def test_condition_not_command_found_code(self) -> None:
+        with pytest.raises(subprocess.CalledProcessError) as e:
+            run(
+                "--condition",
                 "code is None and exit(42)",
-                "no-such-command-should-exist",
+                NO_SUCH_COMMAND,
             )
         assert e.value.returncode == 42
 
