@@ -34,7 +34,7 @@ simpleeval = "^0.9.13"
 black = "^23.7.0"
 pytest = "^7.4.0"
 pyright = "^1.1.324"
-ruff = "^0.0.286"
+ruff = "^0.0.291"
 nox = "^2023.4.22"
 
 [build-system]
@@ -59,7 +59,7 @@ select = [
   "C4",    # flake8-comprehensions
   # "C90", # mccabe
   "COM",   # flake8-commas
-  "CPY",   # flake8-copyright
+  # "CPY", # flake8-copyright
   "DJ",    # flake8-django
   # "D",   # pydocstyle
   "DTZ",   # flake8-datetimez
