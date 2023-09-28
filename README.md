@@ -13,7 +13,7 @@ PyPI package `simpleeval` (installed automatically with `recur-command`).
 
 ## Installation
 
-The recommended way to install recur is from [PyPI](https://pypi.org/project/recur-command/) with [pipx](https://github.com/pypa/pipx).
+The recommended way to install recur is [from PyPI](https://pypi.org/project/recur-command/) with [pipx](https://github.com/pypa/pipx).
 
 ```shell
 pipx install recur-command
@@ -79,10 +79,10 @@ It means recur will stop retrying when the exit code of the command is zero.
 
 You can use the following variables in the condition expression:
 
-* `attempt`: `int` — the number of the current attempt, starting at one.
-Combine with `--tries -1` to use instead of the built-in attempt counter. 
+* `attempt`: `int` — the number of the current attempt, starting with one.
+Combine with `--tries -1` to use the condition instead of the built-in attempt counter. 
 * `code`: `int | None` — the exit code of the last command.
-`None` if the command was not found.
+`code` is `None` when the command was not found.
 * `command_found`: `bool` — whether the last command was found.
 * `time`: `float` — the time the most recent attempt took, in seconds.
 * `total_time`: `float` — the time between the start of the first attempt and the end of the most recent, again in seconds.
