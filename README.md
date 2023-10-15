@@ -68,7 +68,7 @@ However, recur does not use `retry`.
 The jitter (random delay) behavior is different.
 Jitter is applied starting with the first retry, not the second.
 I think this is what the user expects.
-A single-number jitter argument results in random jitter.
+A single-number jitter argument results in random, not constant, jitter.
 
 
 ## Conditions
@@ -127,7 +127,7 @@ Written in Go.
 Written in Bash.
 * [retry (minfrin)](https://github.com/minfrin/retry).
 Written in C.
-Packaged in Debian and Ubuntu repositories.
+Packaged in Debian and Ubuntu.
 `sudo apt install retry`.
 * [retry (timofurrer)](https://github.com/timofurrer/retry-cmd).
 Written in Rust.
