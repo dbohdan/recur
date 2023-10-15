@@ -49,7 +49,7 @@ VERBOSE_LEVEL_INFO = 1
 VERBOSE_LEVEL_DEBUG = 2
 
 
-@dataclass
+@dataclass(frozen=True)
 class Attempt:
     attempt: int
     code: int | None
