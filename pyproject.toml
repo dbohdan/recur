@@ -44,6 +44,34 @@ build-backend = "poetry.core.masonry.api"
 [tool.poetry.scripts]
 recur = 'recur:main'
 
+[tool.poe.env]
+"PYTHON_SOURCES" = "noxfile.py recur.py tests"
+
+[tool.poe.tasks.check]
+sequence = ["format", "lint", "type"]
+help = "Run the formatter, then all static checks"
+ignore_fail = "return_non_zero"
+
+[tool.poe.tasks.files]
+cmd = "echo ${PYTHON_SOURCES}"
+help = "Print the list of packages and files used for static checks"
+
+[tool.poe.tasks.format]
+cmd = "black ${PYTHON_SOURCES}"
+help = "Run Black"
+
+[tool.poe.tasks.lint]
+cmd = "ruff check ${PYTHON_SOURCES}"
+help = "Run Ruff"
+
+[tool.poe.tasks.test]
+cmd = "pytest"
+help = "Run Pytest (not through nox)"
+
+[tool.poe.tasks.type]
+cmd = "pyright ${PYTHON_SOURCES}"
+help = "Run Pyright"
+
 [tool.pyright]
 pythonVersion = "3.8"
 
