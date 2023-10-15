@@ -301,7 +301,10 @@ def main() -> None:
         "--verbose",
         action="count",
         default=0,
-        help="announce exit code and attempt number",
+        help=(
+            "announce exit code and attempt number; "
+            "adds debug information for errors if used twice"
+        ),
     )
 
     args = parser.parse_args()
