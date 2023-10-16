@@ -1,11 +1,14 @@
+# Requires nox-poetry.
+# https://github.com/cjolowicz/nox-poetry
+
 from __future__ import annotations
 
-import nox
+from nox_poetry import Session, session
 
 PYTHON_VERSIONS = ["3.8", "3.9", "3.10", "3.11", "3.12"]
 
 
-@nox.session(python=PYTHON_VERSIONS, tags=["test"])
-def tests(session: nox.Session) -> None:
-    session.install("pytest == 7.*", "simpleeval == 0.9.*")
+@session(python=PYTHON_VERSIONS)
+def tests(session: Session) -> None:
+    session.install(".", "pytest")
     session.run("pytest")

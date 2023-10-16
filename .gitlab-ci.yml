@@ -1,11 +1,11 @@
 variables:
-  NOX_VERSION: 2023.04.22
+  DEPS: nox==2023.04.22 nox-poetry==1.0.3 poetry
 
 linux:
   image: python:3.8
 
   before_script:
-    - pip install nox==$NOX_VERSION
+    - pip install $DEPS
 
   script:
     - nox --sessions tests --pythons 3.8 3.11
@@ -19,7 +19,7 @@ windows:
   before_script:
     - choco install python --version=3.8.10 -y -f
     - $Env:PATH += ";C:\Python38\Scripts"
-    - pip install nox==$NOX_VERSION
+    - pip install $DEPS
 
   script:
     - nox --sessions tests --pythons 3.8
