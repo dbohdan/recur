@@ -65,6 +65,10 @@ help = "Run Black"
 cmd = "ruff check ${PYTHON_SOURCES}"
 help = "Run Ruff"
 
+[tool.poe.tasks.recur]
+cmd = "python recur.py"
+help = "Run recur"
+
 [tool.poe.tasks.test]
 cmd = "pytest"
 help = "Run Pytest (not through nox)"
