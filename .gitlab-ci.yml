@@ -19,7 +19,7 @@ windows:
   before_script:
     - choco install python --version=3.8.10 -y -f
     - $Env:PATH += ";C:\Python38\Scripts"
-    - pip install $DEPS
+    - pip install ($DEPS -split " ")
 
   script:
     - nox --sessions tests --pythons 3.8
