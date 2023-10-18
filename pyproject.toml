@@ -31,7 +31,6 @@ python = "^3.8"
 simpleeval = "^0.9.13"
 
 [tool.poetry.group.dev.dependencies]
-black = "^23.7.0"
 pytest = "^7.4.0"
 pyright = "1.1.329"
 ruff = "0.1.0"
@@ -58,8 +57,8 @@ cmd = "echo ${PYTHON_SOURCES}"
 help = "Print the list of packages and files used for static checks"
 
 [tool.poe.tasks.format]
-cmd = "black ${PYTHON_SOURCES}"
-help = "Run Black"
+cmd = "ruff format ${PYTHON_SOURCES}"
+help = "Run the Ruff formatter"
 
 [tool.poe.tasks.lint]
 cmd = "ruff check ${PYTHON_SOURCES}"
