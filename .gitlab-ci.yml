@@ -1,15 +1,20 @@
 variables:
-  DEPS: nox==2023.04.22 nox-poetry==1.0.3 poetry
+  DEPS: nox==2023.04.22 nox-poetry==1.0.3 poethepoet poetry
 
 linux:
   image: python:3.8
 
   before_script:
     - pip install $DEPS
+    - poetry install
 
   script:
     - nox --sessions tests --pythons 3.8 3.11
+    - poe zipapp
 
+  artifacts:
+    paths:
+      - recur.pyz
 windows:
   tags:
     - shared-windows
