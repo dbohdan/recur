@@ -38,6 +38,7 @@ pyright = "1.1.329"
 ruff = "0.1.0"
 nox = "2023.4.22"
 nox-poetry = "1.0.3"
+shiv = "^1.0.4"
 
 [build-system]
 requires = ["poetry-core"]
@@ -77,6 +78,10 @@ help = "Run Pytest (not through nox)"
 [tool.poe.tasks.type]
 cmd = "pyright ${PYTHON_SOURCES}"
 help = "Run Pyright"
+
+[tool.poe.tasks.zipapp]
+cmd = "shiv --console-script recur --output-file recur.pyz ."
+help = "Run shiv"
 
 [tool.pyright]
 pythonVersion = "3.8"

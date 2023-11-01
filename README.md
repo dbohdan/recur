@@ -21,6 +21,10 @@ pipx install recur-command
 pip install --user recur-command
 ```
 
+recur is also available for download as a single-file Python [ZIP application](https://peps.python.org/pep-0441/) or "zipapp" with its dependencies included.
+A regular Python interpreter can run zipapps.
+Zipapps are attached to [GitLab releases](https://gitlab.com/dbohdan/recur/-/releases) as `.pyz` files.
+
 
 ## Usage
 
