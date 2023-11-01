@@ -39,7 +39,7 @@ from typing import Callable, Literal, Union
 
 from simpleeval import EvalWithCompoundTypes
 
-__version__ = "0.4.0"
+__version__ = "0.4.1"
 
 COMMAND_NOT_FOUND_EXIT_CODE = 255
 MAX_ALLOWED_DELAY = 366 * 24 * 60 * 60
