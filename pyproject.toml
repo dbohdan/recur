@@ -35,7 +35,7 @@ simpleeval = "^0.9.13"
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.4.0"
 pyright = "1.1.329"
-ruff = "0.1.0"
+ruff = "0.1.11"
 nox = "2023.4.22"
 nox-poetry = "1.0.3"
 shiv = "^1.0.4"
@@ -144,6 +144,10 @@ select = [
   "UP",    # pyupgrade
   "W",     # pycodestyle
   "YTT",   # flake8-2020
+]
+ignore = [
+  "COM812", # missing-trailing-comma
+  "ISC001", # single-line-implicit-string-concatenation
 ]
 target-version = "py38"
 
