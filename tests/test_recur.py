@@ -23,7 +23,6 @@ import re
 import shlex
 import subprocess
 import sys
-import unittest
 from pathlib import Path
 
 import pytest
@@ -63,7 +62,7 @@ def run(
     return output
 
 
-class TestRecur(unittest.TestCase):
+class TestRecur:
     def test_usage(self) -> None:
         assert re.search("^usage", run(check=False, return_stderr=True))
 
@@ -178,4 +177,4 @@ class TestRecur(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    unittest.main()
+    pytest.main()
