@@ -21,7 +21,6 @@ classifiers = [
 ]
 
 include = [
-  { path = "LICENSE", format = "sdist" },
   { path = "noxfile.py", format = "sdist" },
   { path = "tests/", format = "sdist" },
 ]
