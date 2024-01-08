@@ -174,8 +174,15 @@ def retry_command(
 
 
 def main() -> None:
+    argv0 = Path(sys.argv[0])
+
     parser = argparse.ArgumentParser(
         description="Retry a command with exponential backoff and jitter.",
+        prog=(
+            f"{Path(sys.executable).name} -m {argv0.parent.name}"
+            if argv0.name == "__main__.py"
+            else argv0.name
+        ),
     )
 
     parser.add_argument(
