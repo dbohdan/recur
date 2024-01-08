@@ -32,7 +32,7 @@ TEST_PATH = Path(__file__).resolve().parent
 
 COMMAND = shlex.split(os.environ.get("RECUR_COMMAND", ""))
 if not COMMAND:
-    COMMAND = [PYTHON, Path(TEST_PATH, "..", "recur.py")]
+    COMMAND = [PYTHON, "-m", "recur_command"]
 
 
 NO_SUCH_COMMAND = "no-such-command-should-exist"
