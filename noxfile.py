@@ -1,9 +1,6 @@
-# Requires nox-poetry.
-# https://github.com/cjolowicz/nox-poetry
-
 from __future__ import annotations
 
-from nox_poetry import Session, session
+from nox import Session, session
 
 PYTHON_VERSIONS = ["3.8", "3.9", "3.10", "3.11", "3.12"]
 

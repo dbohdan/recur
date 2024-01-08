@@ -1,5 +1,5 @@
 variables:
-  DEPS: nox==2023.04.22 nox-poetry==1.0.3 poethepoet poetry
+  DEPS: nox==2023.04.22 poethepoet poetry
 
 linux:
   image: python:3.8
