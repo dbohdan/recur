@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 import argparse
+import importlib.metadata
 import itertools
 import logging
 import random
@@ -17,8 +18,6 @@ from pathlib import Path
 from typing import Callable, Literal, Union
 
 from simpleeval import EvalWithCompoundTypes
-
-__version__ = "0.4.1"
 
 COMMAND_NOT_FOUND_EXIT_CODE = 255
 MAX_ALLOWED_DELAY = 366 * 24 * 60 * 60
@@ -202,7 +201,7 @@ def main() -> None:
         "-V",
         "--version",
         action="version",
-        version=__version__,
+        version=importlib.metadata.version("recur-command"),
     )
 
     parser.add_argument(
