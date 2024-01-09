@@ -325,11 +325,10 @@ def main() -> None:
         sys.exit(code)
 
     def success(attempt: Attempt) -> bool:
-        evaluator = EvalWithCompoundTypes(
+        result = EvalWithCompoundTypes(
             functions={"exit": exit_from_cond},
             names=vars(attempt),
-        )
-        result = evaluator.eval(args.condition)
+        ).eval(args.condition)
 
         if not isinstance(result, bool):
             msg = (
