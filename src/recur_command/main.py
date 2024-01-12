@@ -35,7 +35,7 @@ import time
 import traceback
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Callable, Literal, Union
+from typing import Callable, Literal, Sequence, Union
 
 from simpleeval import EvalWithCompoundTypes
 
@@ -137,7 +137,7 @@ def configure_logging(*, start_time: float, verbose: int):
 
 
 def retry_command(
-    args: list[str],
+    args: Sequence[str],
     *,
     backoff: float,
     fixed_delay: Interval,
