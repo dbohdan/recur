@@ -32,7 +32,7 @@ simpleeval = "^0.9.13"
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.4.0"
 pyright = "1.1.329"
-ruff = "0.1.11"
+ruff = "0.2.1"
 nox = "2023.4.22"
 shiv = "^1.0.4"
 pytest-cov = "^4.1.0"
@@ -84,6 +84,8 @@ help = "Run shiv"
 pythonVersion = "3.8"
 
 [tool.ruff]
+
+[tool.ruff.lint]
 select = [
   "A",     # flake8-builtins
   "AIR",   # Airflow
@@ -146,9 +148,8 @@ ignore = [
   "COM812", # missing-trailing-comma
   "ISC001", # single-line-implicit-string-concatenation
 ]
-target-version = "py38"
 
-[tool.ruff.per-file-ignores]
+[tool.ruff.lint.per-file-ignores]
 "src/recur_command/main.py" = [
   "PERF203", # try-except-in-loop
   "S311",    # suspicious-non-cryptographic-random-usage
@@ -161,7 +162,7 @@ target-version = "py38"
   "S603",    # subprocess-without-shell-equals-true
 ]
 
-[tool.ruff.pylint]
+[tool.ruff.lint.pylint]
 max-args = 8
 max-branches = 20
 max-statements = 100

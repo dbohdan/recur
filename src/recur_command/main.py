@@ -95,7 +95,7 @@ class RelativeTimeLevelSuffixFormatter(logging.Formatter):
         )
         self._reftime = reftime
 
-    def format(self, record: logging.LogRecord):  # noqa: A003
+    def format(self, record: logging.LogRecord):
         record.levelsuffix = (
             f" {record.levelname.lower()}"
             if record.levelno <= logging.DEBUG or record.levelno >= logging.WARNING
