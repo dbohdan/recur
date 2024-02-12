@@ -30,7 +30,7 @@ python = "^3.8"
 simpleeval = "^0.9.13"
 
 [tool.poetry.group.dev.dependencies]
-pytest = "^7.4.0"
+pytest = "^8"
 pyright = "1.1.329"
 ruff = "0.2.1"
 nox = "2023.4.22"
