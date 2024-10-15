@@ -27,15 +27,15 @@ include = [
 
 [tool.poetry.dependencies]
 python = "^3.9"
-simpleeval = "^0.9.13"
+simpleeval = "^1.0.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8"
-pyright = "1.1.329"
-ruff = "0.2.1"
-nox = "2023.4.22"
-shiv = "^1.0.4"
-pytest-cov = "^4.1.0"
+pyright = "1.1.385"
+ruff = "0.6.9"
+nox = "2024.10.09"
+shiv = "^1.0.6"
+pytest-cov = "^5.0.0"
 
 [build-system]
 requires = ["poetry-core"]
