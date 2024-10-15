@@ -26,7 +26,7 @@ include = [
 ]
 
 [tool.poetry.dependencies]
-python = "^3.8"
+python = "^3.9"
 simpleeval = "^0.9.13"
 
 [tool.poetry.group.dev.dependencies]
@@ -81,9 +81,10 @@ cmd = "shiv --console-script recur --output-file recur.pyz ."
 help = "Run shiv"
 
 [tool.pyright]
-pythonVersion = "3.8"
+pythonVersion = "3.9"
 
 [tool.ruff]
+target-version = "py39"
 
 [tool.ruff.lint]
 select = [

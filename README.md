@@ -7,7 +7,7 @@ It lets you define the success condition.
 
 ## Requirements
 
-Python 3.8 or later,
+Python 3.9 or later,
 PyPI package `simpleeval` (installed automatically with `recur-command`).
 
 
