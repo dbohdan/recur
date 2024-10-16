@@ -1,15 +1,14 @@
 variables:
-  DEPS: nox==2023.04.22 poethepoet poetry
+  DEPS: nox==2024.10.09 poethepoet poetry
 
 linux:
-  image: python:3.8
-
+  image: python:3.9
   before_script:
     - pip install $DEPS
     - poetry install
 
   script:
-    - nox --sessions tests --pythons 3.8 3.11
+    - nox --sessions tests --pythons 3.9 3.11
     - poe zipapp
 
   artifacts:
@@ -22,9 +21,9 @@ windows:
     - windows-1809
 
   before_script:
-    - choco install python --version=3.8.10 -y -f
-    - $Env:PATH += ";C:\Python38\Scripts"
+    - choco install python --version=3.9.13 -y -f
+    - $Env:PATH += ";C:\Python39\Scripts"
     - pip install ($DEPS -split " ")
 
   script:
-    - nox --sessions tests --pythons 3.8
+    - nox --sessions tests --pythons 3.9
