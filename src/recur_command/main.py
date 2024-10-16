@@ -35,9 +35,12 @@ import time
 import traceback
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Callable, Literal, Sequence, Union
+from typing import TYPE_CHECKING, Callable, Literal, Union
 
 from simpleeval import EvalWithCompoundTypes
+
+if TYPE_CHECKING:
+    from collections.abc import Sequence
 
 COMMAND_NOT_FOUND_EXIT_CODE = 255
 MAX_ALLOWED_DELAY = 366 * 24 * 60 * 60
