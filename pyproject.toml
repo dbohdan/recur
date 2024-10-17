@@ -1,14 +1,13 @@
-[tool.poetry]
+[project]
 name = "recur-command"
 version = "0.5.0"
 description = "Retry a command with exponential backoff and jitter."
-authors = ["D. Bohdan <dbohdan@dbohdan.com>"]
+authors = [{ name = "D. Bohdan", email = "dbohdan@dbohdan.com" }]
 license = "MIT"
 readme = "README.md"
+requires-python = ">=3.9"
 repository = "https://gitlab.com/dbohdan/recur"
-keywords = [
-  "retry",
-]
+keywords = ["retry"]
 classifiers = [
   "Development Status :: 3 - Alpha",
   "Environment :: Console",
@@ -19,33 +18,38 @@ classifiers = [
   "Programming Language :: Python :: 3",
   "Topic :: Utilities",
 ]
-
 include = [
   { path = "noxfile.py", format = "sdist" },
   { path = "tests/", format = "sdist" },
 ]
+dependencies = ["simpleeval == 1.*"]
 
-[tool.poetry.dependencies]
-python = "^3.9"
-simpleeval = "^1.0.0"
-
-[tool.poetry.group.dev.dependencies]
-pytest = "^8"
-pyright = "1.1.385"
-ruff = "0.6.9"
-nox = "2024.10.09"
-shiv = "^1.0.6"
-pytest-cov = "^5.0.0"
+[project.scripts]
+recur = 'recur_command.main:main'
 
 [build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
-[tool.poetry.scripts]
-recur = 'recur_command.main:main'
+[tool.hatch.build]
+skip-excluded-dirs = true
+
+[tool.hatch.build.targets.sdist]
+only-include = [
+  "LICENSE",
+  "README.md",
+  "src/",
+  "tests/",
+  "noxfile.py",
+  "pyproject.toml",
+  "uv.lock",
+]
 
 [tool.poe.env]
 "PYTHON_SOURCES" = "noxfile.py src tests"
+
+[tool.poe.executor]
+type = "virtualenv"
 
 [tool.poe.tasks.check]
 sequence = ["format", "lint", "type"]
@@ -88,82 +92,92 @@ target-version = "py39"
 
 [tool.ruff.lint]
 select = [
-  "A",     # flake8-builtins
-  "AIR",   # Airflow
-  # "ANN", # flake8-annotations
-  "ARG",   # flake8-unused-arguments
-  "ASYNC", # flake8-async
-  "B",     # flake8-bugbear
-  "BLE",   # flake8-blind-except
-  "C4",    # flake8-comprehensions
-  # "C90", # mccabe
-  "COM",   # flake8-commas
-  # "CPY", # flake8-copyright
-  "DJ",    # flake8-django
-  # "D",   # pydocstyle
-  "DTZ",   # flake8-datetimez
-  "EM",    # flake8-errmsg
-  "ERA",   # eradicate
-  "E",     # pycodestyle
-  "EXE",   # flake8-executable
-  "FA",    # flake8-future-annotations
-  "FBT",   # flake8-boolean-trap
-  "FIX",   # flake8-fixme
-  "FLY",   # flynt
-  "F",     # Pyflakes
-  "G",     # flake8-logging-format
-  "ICN",   # flake8-import-conventions
-  "I",     # isort
-  "INP",   # flake8-no-pep420
-  "INT",   # flake8-gettext
-  "ISC",   # flake8-implicit-str-concat
-  "N",     # pep8-naming
-  "NPY",   # NumPy-specific rules
-  "PD",    # pandas-vet
-  "PERF",  # Perflint
-  "PGH",   # pygrep-hooks
-  "PIE",   # flake8-pie
-  "PL",    # Pylint
-  "PT",    # flake8-pytest-style
-  "PTH",   # flake8-use-pathlib
-  "PYI",   # flake8-pyi
-  "Q",     # flake8-quotes
-  "RET",   # flake8-return
-  "RSE",   # flake8-raise
-  "RUF",   # Ruff-specific rules
-  "S",     # flake8-bandit
-  "SIM",   # flake8-simplify
-  "SLF",   # flake8-self
-  "SLOT",  # flake8-slots
-  "T10",   # flake8-debugger
-  "T20",   # flake8-print
-  "TCH",   # flake8-type-checking
-  "TD",    # flake8-todos
-  "TID",   # flake8-tidy-imports
-  "TRY",   # tryceratops
-  "UP",    # pyupgrade
-  "W",     # pycodestyle
-  "YTT",   # flake8-2020
+  "A",      # flake8-builtins
+  "AIR",    # Airflow
+  # "ANN",  # flake8-annotations
+  "ARG",    # flake8-unused-arguments
+  "ASYNC",  # flake8-async
+  "B",      # flake8-bugbear
+  "BLE",    # flake8-blind-except
+  "C4",     # flake8-comprehensions
+   # "C90", # mccabe
+  "COM",    # flake8-commas
+   # "CPY", # flake8-copyright
+  "DJ",     # flake8-django
+   # "D",   # pydocstyle
+  "DTZ",    # flake8-datetimez
+  "EM",     # flake8-errmsg
+  "ERA",    # eradicate
+  "E",      # pycodestyle
+  "EXE",    # flake8-executable
+  "FA",     # flake8-future-annotations
+  "FBT",    # flake8-boolean-trap
+  "FIX",    # flake8-fixme
+  "FLY",    # flynt
+  "F",      # Pyflakes
+  "G",      # flake8-logging-format
+  "ICN",    # flake8-import-conventions
+  "I",      # isort
+  "INP",    # flake8-no-pep420
+  "INT",    # flake8-gettext
+  "ISC",    # flake8-implicit-str-concat
+  "N",      # pep8-naming
+  "NPY",    # NumPy-specific rules
+  "PD",     # pandas-vet
+  "PERF",   # Perflint
+  "PGH",    # pygrep-hooks
+  "PIE",    # flake8-pie
+  "PL",     # Pylint
+  "PT",     # flake8-pytest-style
+  "PTH",    # flake8-use-pathlib
+  "PYI",    # flake8-pyi
+  "Q",      # flake8-quotes
+  "RET",    # flake8-return
+  "RSE",    # flake8-raise
+  "RUF",    # Ruff-specific rules
+  "S",      # flake8-bandit
+  "SIM",    # flake8-simplify
+  "SLF",    # flake8-self
+  "SLOT",   # flake8-slots
+  "T10",    # flake8-debugger
+  "T20",    # flake8-print
+  "TCH",    # flake8-type-checking
+  "TD",     # flake8-todos
+  "TID",    # flake8-tidy-imports
+  "TRY",    # tryceratops
+  "UP",     # pyupgrade
+  "W",      # pycodestyle
+  "YTT",    # flake8-2020
 ]
 ignore = [
-  "COM812", # missing-trailing-comma
-  "ISC001", # single-line-implicit-string-concatenation
+  "COM812",  # missing-trailing-comma
+  "ISC001",  # single-line-implicit-string-concatenation
 ]
 
 [tool.ruff.lint.per-file-ignores]
 "src/recur_command/main.py" = [
-  "PERF203", # try-except-in-loop
-  "S311",    # suspicious-non-cryptographic-random-usage
-  "S603",    # subprocess-without-shell-equals-true
-  "TRY400",  # error-instead-of-exception
+  "PERF203",  # try-except-in-loop
+  "S311",     # suspicious-non-cryptographic-random-usage
+  "S603",     # subprocess-without-shell-equals-true
+  "TRY400",   # error-instead-of-exception
 ]
 "tests/*.py" = [
-  "PLR2004", # magic-value-comparison
-  "S101",    # assert
-  "S603",    # subprocess-without-shell-equals-true
+  "PLR2004",  # magic-value-comparison
+  "S101",     # assert
+  "S603",     # subprocess-without-shell-equals-true
 ]
 
 [tool.ruff.lint.pylint]
 max-args = 8
 max-branches = 20
 max-statements = 100
+
+[tool.uv]
+dev-dependencies = [
+  "pytest == 8.*",
+  "pyright == 1.1.385",
+  "ruff == 0.6.*",
+  "nox == 2024.10.9",
+  "shiv == 1.*",
+  "pytest-cov == 5.*",
+]

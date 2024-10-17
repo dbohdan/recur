@@ -1,1 +1,1 @@
-/poetry.lock -diff
+/*.lock -diff
