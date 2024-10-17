@@ -1,11 +1,12 @@
 variables:
-  DEPS: nox==2024.10.09 poethepoet poetry
+  DEPS: nox==2024.10.09 poethepoet uv
 
 linux:
   image: python:3.9
+
   before_script:
     - pip install $DEPS
-    - poetry install
+    - uv sync
 
   script:
     - nox --sessions tests --pythons 3.9 3.11
@@ -14,11 +15,10 @@ linux:
   artifacts:
     paths:
       - recur.pyz
+
 windows:
   tags:
-    - shared-windows
-    - windows
-    - windows-1809
+    - saas-windows-medium-amd64
 
   before_script:
     - choco install python --version=3.9.13 -y -f
