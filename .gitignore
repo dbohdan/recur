@@ -1,6 +1,7 @@
 /attic/
 
 *.bak
+*.exe
 *.swp
 
 /help
