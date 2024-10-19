@@ -1,0 +1,77 @@
+name: CI
+on: [push, pull_request]
+jobs:
+  bsd:
+    runs-on: ${{ matrix.os.host }}
+    strategy:
+      matrix:
+        os:
+          - name: freebsd
+            architecture: x86-64
+            version: '14.1'
+            host: ubuntu-latest
+
+          - name: netbsd
+            architecture: x86-64
+            version: '10.0'
+            host: ubuntu-latest
+
+          - name: openbsd
+            architecture: x86-64
+            version: '7.5'
+            host: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run CI script on ${{ matrix.os.name }}
+        uses: cross-platform-actions/action@v0.25.0
+        with:
+          operating_system: ${{ matrix.os.name }}
+          architecture: ${{ matrix.os.architecture }}
+          version: ${{ matrix.os.version }}
+          shell: bash
+          run: |
+            sudo .github/workflows/install-deps.sh
+            make test
+
+  linux:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Install dependencies
+      run: |
+        sudo .github/workflows/install-deps.sh
+
+    - name: Test
+      run: |
+        make test
+
+  mac:
+    runs-on: macos-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Install dependencies
+      run: |
+        .github/workflows/install-deps.sh
+
+    - name: Build and test
+      run: |
+        make test
+
+  windows:
+    runs-on: windows-latest
+    steps:
+    - name: 'Disable `autocrlf` in Git'
+      run: git config --global core.autocrlf false
+
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Test
+      run: |
+        .\test.ps1
