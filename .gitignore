@@ -1,14 +1,10 @@
 /attic/
-/.nox/
-/.tox/
-/.venv/
 
-.coverage
-.mypy*
-.pytest*
-.python-version
-.ruff*
+*.bak
+*.swp
 
-__pycache__/
-
-*.pyz
+/help
+/recur
+/test/exit99
+/test/hello
+/test/wait
