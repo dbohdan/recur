@@ -8,7 +8,7 @@ It lets you define the success condition.
 ## Requirements
 
 - Go 1.19
-- GNU Make for testing
+- POSIX Make for testing
 
 ## Installation
 

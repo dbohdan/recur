@@ -14,5 +14,11 @@ recur: main.go
 test: recur $(TEST_BINARIES)
 	go test
 
-test/%: test/%.go
-	go build -o $@ $<
+test/exit99: test/exit99.go
+	go build -o $@ test/exit99.go
+
+test/hello: test/hello.go
+	go build -o $@ test/hello.go
+
+test/wait: test/wait.go
+	go build -o $@ test/wait.go
