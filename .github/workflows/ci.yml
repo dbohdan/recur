@@ -75,3 +75,10 @@ jobs:
     - name: Test
       run: |
         .\test.ps1
+
+    - name: Upload Windows binary
+      uses: actions/upload-artifact@v4
+      with:
+        name: recur-windows-amd64
+        path: |
+          recur.exe
