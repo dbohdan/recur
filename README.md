@@ -35,6 +35,7 @@ Flags:
                                  exponential backoff)
   -c, --condition="code == 0"    success condition (Starlark expression)
   -d, --delay=0                  constant delay (seconds)
+  -f, --forever                  infinite attempts
   -j, --jitter="0,0"             additional random delay (maximum seconds or
                                  'min,max' seconds)
   -m, --max-delay=3600           maximum total delay (seconds)
@@ -67,13 +68,14 @@ The most significant differences between Starlark and Python for this purpose ar
 You can use the following variables in the condition expression:
 
 - `attempt`: `int` — the number of the current attempt, starting at one.
-  Combine with `--tries=-1` to use the condition instead of the built-in attempt counter.
+  Combine with `--forever` to use the condition instead of the built-in attempt counter.
 - `code`: `int | None` — the exit code of the last command.
   `code` is `None` when the command was not found.
 - `command_found`: `bool` — whether the last command was found.
+- `max_tries`: `int` — the value of the option `--tries`.
+  `--forever` sets it to -1.
 - `time`: `float` — the time the most recent attempt took, in seconds.
 - `total_time`: `float` — the time between the start of the first attempt and the end of the most recent, again in seconds.
--  `max_tries`: `int` — the value of the option `--tries`.
 
 recur defines one custom function:
 

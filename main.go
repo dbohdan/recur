@@ -80,6 +80,7 @@ type CLI struct {
 	Backoff   float64          `default:"0" short:"b" help:"base for exponential backoff (0 for no exponential backoff)"`
 	Condition string           `default:"code == 0" short:"c" help:"success condition (Starlark expression)"`
 	Delay     float64          `default:"0" short:"d" help:"constant delay (seconds)"`
+	Forever   bool             `short:"f" help:"infinite attempts"`
 	Jitter    string           `default:"0,0" short:"j" help:"additional random delay (maximum seconds or 'min,max' seconds)"`
 	MaxDelay  float64          `default:"3600" short:"m" help:"maximum total delay (seconds)"`
 	Timeout   time.Duration    `short:"w" default:"0" help:"timeout for each attempt (seconds, 0 for no timeout)"`
@@ -165,9 +166,9 @@ func evaluateCondition(attempt Attempt, expr string) (bool, error) {
 		"attempt":       starlark.MakeInt(attempt.Number),
 		"code":          code,
 		"command_found": starlark.Bool(attempt.CommandFound),
+		"max_tries":     starlark.MakeInt(attempt.MaxTries),
 		"time":          starlark.Float(attempt.Duration),
 		"total_time":    starlark.Float(attempt.TotalTime),
-		"max_tries":     starlark.MakeInt(attempt.MaxTries),
 	}
 
 	val, err := starlark.Eval(thread, "", expr, globals)
@@ -318,6 +319,10 @@ func main() {
 		kong.UsageOnError(),
 		kong.Vars{"version": Version},
 	)
+
+	if cli.Forever {
+		cli.Tries = -1
+	}
 
 	if cli.Verbose > MaxVerboseLevel {
 		kongCtx.Fatalf("up to %d verbose flags is allowed", MaxVerboseLevel)

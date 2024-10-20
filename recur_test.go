@@ -119,7 +119,14 @@ func TestStopOnSuccess(t *testing.T) {
 	}
 }
 
-func TestConditionAttempt(t *testing.T) {
+func TestConditionAttemptForever(t *testing.T) {
+	stdout, _, _ := runCommand("--condition", "attempt == 5", "--forever", commandHello)
+	if count := len(regexp.MustCompile("hello").FindAllString(stdout, -1)); count != 5 {
+		t.Errorf("Expected 5 instances of 'hello', got %d", count)
+	}
+}
+
+func TestConditionAttemptTries(t *testing.T) {
 	stdout, _, _ := runCommand("--condition", "attempt == 5", "--tries=-1", commandHello)
 	if count := len(regexp.MustCompile("hello").FindAllString(stdout, -1)); count != 5 {
 		t.Errorf("Expected 5 instances of 'hello', got %d", count)
@@ -163,6 +170,7 @@ func TestConditionExitArgWrongType(t *testing.T) {
 		t.Errorf("Expected exit code 1, got %v", err)
 	}
 }
+
 func TestConditionTimeAndTotalTime(t *testing.T) {
 	stdout, _, _ := runCommand("--condition", "total_time > time", commandWait)
 	if count := len(regexp.MustCompile("T").FindAllString(stdout, -1)); count != 2 {
