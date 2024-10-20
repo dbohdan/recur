@@ -36,14 +36,14 @@ import (
 )
 
 const (
-	ExitCodeCommandNotFound = 255
-	ExitCodeError           = -1
-	MaxAllowedDelay         = 366 * 24 * 60 * 60
-	MaxVerboseLevel         = 2
-	Version                 = "0.6.0"
+	exitCodeCommandNotFound = 255
+	exitCodeError           = -1
+	maxAllowedDelay         = 366 * 24 * 60 * 60
+	maxVerboseLevel         = 2
+	version                 = "0.6.0"
 )
 
-type Attempt struct {
+type attempt struct {
 	CommandFound bool
 	Duration     float64
 	ExitCode     int
@@ -52,38 +52,38 @@ type Attempt struct {
 	TotalTime    float64
 }
 
-type Interval struct {
+type interval struct {
 	Start float64
 	End   float64
 }
 
-type CommandStatus int
+type commandStatus int
 
 const (
-	statusFinished CommandStatus = iota
+	statusFinished commandStatus = iota
 	statusTimeout
 	statusNotFound
 	statusUnknownError
 )
 
-type CommandResult struct {
-	Status   CommandStatus
+type commandResult struct {
+	Status   commandStatus
 	ExitCode int
 }
 
-type RetryConfig struct {
+type retryConfig struct {
 	Command     string
 	Args        []string
 	Backoff     float64
-	FixedDelay  Interval
+	FixedDelay  interval
 	MaxAttempts int
-	RandomDelay Interval
+	RandomDelay interval
 	Condition   string
 	Verbose     int
 	Timeout     time.Duration
 }
 
-type CLI struct {
+type cli struct {
 	Command     string           `arg:"" passthrough:"" help:"command to run"`
 	Args        []string         `arg:"" optional:"" name:"args" help:"arguments"`
 	Version     kong.VersionFlag `short:"V" help:"print version number and exit"`
@@ -102,6 +102,10 @@ type elapsedTimeWriter struct {
 	startTime time.Time
 }
 
+type exitRequestError struct {
+	Code int
+}
+
 func (w *elapsedTimeWriter) Write(bytes []byte) (int, error) {
 	elapsed := time.Since(w.startTime)
 
@@ -111,10 +115,6 @@ func (w *elapsedTimeWriter) Write(bytes []byte) (int, error) {
 	deciseconds := elapsed.Milliseconds() % 1000 / 100
 
 	return fmt.Fprintf(os.Stderr, "recur [%02d:%02d:%02d.%01d]: %s", hours, minutes, seconds, deciseconds, string(bytes))
-}
-
-type exitRequestError struct {
-	Code int
 }
 
 func (e *exitRequestError) Error() string {
@@ -128,7 +128,7 @@ func StarlarkExit(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tu
 	}
 
 	if _, ok := code.(starlark.NoneType); ok {
-		return starlark.None, &exitRequestError{Code: int(ExitCodeCommandNotFound)}
+		return starlark.None, &exitRequestError{Code: int(exitCodeCommandNotFound)}
 	}
 
 	if codeInt, ok := code.(starlark.Int); ok {
@@ -143,29 +143,29 @@ func StarlarkExit(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tu
 	return nil, fmt.Errorf("exit code wasn't 'int' or 'None'")
 }
 
-func parseInterval(s string) (Interval, error) {
+func parseInterval(s string) (interval, error) {
 	var start, end float64
 
 	if _, err := fmt.Sscanf(s, "%f,%f", &start, &end); err != nil {
 		if _, err := fmt.Sscanf(s, "%f", &end); err != nil {
-			return Interval{}, fmt.Errorf("invalid interval format: %s", s)
+			return interval{}, fmt.Errorf("invalid interval format: %s", s)
 		}
 		start = 0
 	}
 
 	if start < 0 || end < 0 || start > end {
-		return Interval{}, fmt.Errorf("invalid interval values: start=%f, end=%f", start, end)
+		return interval{}, fmt.Errorf("invalid interval values: start=%f, end=%f", start, end)
 	}
 
-	return Interval{Start: start, End: end}, nil
+	return interval{Start: start, End: end}, nil
 }
 
-func evaluateCondition(attempt Attempt, expr string) (bool, error) {
+func evaluateCondition(attemptInfo attempt, expr string) (bool, error) {
 	thread := &starlark.Thread{Name: "condition"}
 
 	var code starlark.Value
-	if attempt.CommandFound {
-		code = starlark.MakeInt(attempt.ExitCode)
+	if attemptInfo.CommandFound {
+		code = starlark.MakeInt(attemptInfo.ExitCode)
 	} else {
 		code = starlark.None
 	}
@@ -173,12 +173,12 @@ func evaluateCondition(attempt Attempt, expr string) (bool, error) {
 	globals := starlark.StringDict{
 		"exit": starlark.NewBuiltin("exit", StarlarkExit),
 
-		"attempt":       starlark.MakeInt(attempt.Number),
+		"attempt":       starlark.MakeInt(attemptInfo.Number),
 		"code":          code,
-		"command_found": starlark.Bool(attempt.CommandFound),
-		"max_attempts":  starlark.MakeInt(attempt.MaxAttempts),
-		"time":          starlark.Float(attempt.Duration),
-		"total_time":    starlark.Float(attempt.TotalTime),
+		"command_found": starlark.Bool(attemptInfo.CommandFound),
+		"max_attempts":  starlark.MakeInt(attemptInfo.MaxAttempts),
+		"time":          starlark.Float(attemptInfo.Duration),
+		"total_time":    starlark.Float(attemptInfo.TotalTime),
 	}
 
 	val, err := starlark.Eval(thread, "", expr, globals)
@@ -198,11 +198,11 @@ func evaluateCondition(attempt Attempt, expr string) (bool, error) {
 	return bool(val.Truth()), nil
 }
 
-func executeCommand(command string, args []string, timeout time.Duration) CommandResult {
+func executeCommand(command string, args []string, timeout time.Duration) commandResult {
 	if _, err := exec.LookPath(command); err != nil {
-		return CommandResult{
+		return commandResult{
 			Status:   statusNotFound,
-			ExitCode: ExitCodeCommandNotFound,
+			ExitCode: exitCodeCommandNotFound,
 		}
 	}
 
@@ -221,38 +221,38 @@ func executeCommand(command string, args []string, timeout time.Duration) Comman
 	err := cmd.Run()
 	if err != nil {
 		if ctx.Err() == context.DeadlineExceeded {
-			return CommandResult{
+			return commandResult{
 				Status:   statusTimeout,
-				ExitCode: ExitCodeError,
+				ExitCode: exitCodeError,
 			}
 		}
 
 		var exitErr *exec.ExitError
 		if errors.As(err, &exitErr) {
-			return CommandResult{
+			return commandResult{
 				Status:   statusFinished,
 				ExitCode: exitErr.ExitCode(),
 			}
 		}
 
-		return CommandResult{
+		return commandResult{
 			Status:   statusUnknownError,
-			ExitCode: ExitCodeError,
+			ExitCode: exitCodeError,
 		}
 	}
 
-	return CommandResult{
+	return commandResult{
 		Status:   statusFinished,
 		ExitCode: cmd.ProcessState.ExitCode(),
 	}
 }
 
-func delayBeforeAttempt(attempt int, config RetryConfig) time.Duration {
-	if attempt == 1 {
+func delayBeforeAttempt(attemptNum int, config retryConfig) time.Duration {
+	if attemptNum == 1 {
 		return 0
 	}
 
-	currFixed := config.FixedDelay.Start + math.Pow(float64(config.Backoff), float64(attempt-1))
+	currFixed := config.FixedDelay.Start + math.Pow(float64(config.Backoff), float64(attemptNum-1))
 	if currFixed > config.FixedDelay.End {
 		currFixed = config.FixedDelay.End
 	}
@@ -263,7 +263,7 @@ func delayBeforeAttempt(attempt int, config RetryConfig) time.Duration {
 	return time.Duration((currFixed + currRandom) * float64(time.Second))
 }
 
-func retry(config RetryConfig) (int, error) {
+func retry(config retryConfig) (int, error) {
 	customWriter := &elapsedTimeWriter{
 		startTime: time.Now(),
 	}
@@ -272,15 +272,15 @@ func retry(config RetryConfig) (int, error) {
 	log.SetOutput(customWriter)
 	log.SetFlags(0)
 
-	var result CommandResult
+	var cmdResult commandResult
 	var startTime time.Time
 	var totalTime time.Duration
 
-	for attempt := 1; config.MaxAttempts < 0 || attempt <= config.MaxAttempts; attempt++ {
-		delay := delayBeforeAttempt(attempt, config)
+	for attemptNum := 1; config.MaxAttempts < 0 || attemptNum <= config.MaxAttempts; attemptNum++ {
+		delay := delayBeforeAttempt(attemptNum, config)
 		if delay > 0 {
 			if config.Verbose >= 1 {
-				logger.Printf("waiting %v before attempt %d", delay, attempt)
+				logger.Printf("waiting %v before attempt %d", delay, attemptNum)
 			}
 			time.Sleep(delay)
 		}
@@ -290,31 +290,31 @@ func retry(config RetryConfig) (int, error) {
 			startTime = attemptStart
 		}
 
-		result = executeCommand(config.Command, config.Args, config.Timeout)
+		cmdResult = executeCommand(config.Command, config.Args, config.Timeout)
 
 		attemptEnd := time.Now()
 		attemptDuration := attemptEnd.Sub(attemptStart)
 		totalTime = attemptEnd.Sub(startTime)
 
 		if config.Verbose >= 1 {
-			switch result.Status {
+			switch cmdResult.Status {
 			case statusFinished:
-				logger.Printf("command exited with code %d on attempt %d", result.ExitCode, attempt)
+				logger.Printf("command exited with code %d on attempt %d", cmdResult.ExitCode, attemptNum)
 			case statusTimeout:
-				logger.Printf("command timed out on attempt %d", attempt)
+				logger.Printf("command timed out on attempt %d", attemptNum)
 			case statusNotFound:
-				logger.Printf("command was not found on attempt %d", attempt)
+				logger.Printf("command was not found on attempt %d", attemptNum)
 			case statusUnknownError:
-				logger.Printf("unknown error occurred on attempt %d", attempt)
+				logger.Printf("unknown error occurred on attempt %d", attemptNum)
 			}
 		}
 
-		attemptInfo := Attempt{
-			CommandFound: result.Status == statusFinished,
+		attemptInfo := attempt{
+			CommandFound: cmdResult.Status == statusFinished,
 			Duration:     attemptDuration.Seconds(),
-			ExitCode:     result.ExitCode,
+			ExitCode:     cmdResult.ExitCode,
 			MaxAttempts:  config.MaxAttempts,
-			Number:       attempt,
+			Number:       attemptNum,
 			TotalTime:    totalTime.Seconds(),
 		}
 
@@ -329,7 +329,7 @@ func retry(config RetryConfig) (int, error) {
 		}
 
 		if success {
-			return result.ExitCode, nil
+			return cmdResult.ExitCode, nil
 		}
 
 		if config.Verbose >= 2 {
@@ -337,41 +337,41 @@ func retry(config RetryConfig) (int, error) {
 		}
 	}
 
-	return result.ExitCode, fmt.Errorf("maximum attempts reached (%d)", config.MaxAttempts)
+	return cmdResult.ExitCode, fmt.Errorf("maximum attempts reached (%d)", config.MaxAttempts)
 }
 
 func main() {
-	var cli CLI
-	kongCtx := kong.Parse(&cli,
+	var cliConfig cli
+	kongCtx := kong.Parse(&cliConfig,
 		kong.Name("recur"),
 		kong.Description("Retry a command with exponential backoff and jitter."),
 		kong.UsageOnError(),
-		kong.Vars{"version": Version},
+		kong.Vars{"version": version},
 	)
 
-	if cli.Forever {
-		cli.MaxAttempts = -1
+	if cliConfig.Forever {
+		cliConfig.MaxAttempts = -1
 	}
 
-	if cli.Verbose > MaxVerboseLevel {
-		kongCtx.Fatalf("up to %d verbose flags is allowed", MaxVerboseLevel)
+	if cliConfig.Verbose > maxVerboseLevel {
+		kongCtx.Fatalf("up to %d verbose flags is allowed", maxVerboseLevel)
 	}
 
-	jitter, err := parseInterval(cli.Jitter)
+	jitterInterval, err := parseInterval(cliConfig.Jitter)
 	if err != nil {
 		kongCtx.Fatalf("invalid jitter: %v", err)
 	}
 
-	config := RetryConfig{
-		Command:     cli.Command,
-		Args:        cli.Args,
-		Backoff:     cli.Backoff,
-		FixedDelay:  Interval{Start: cli.Delay, End: cli.MaxDelay},
-		MaxAttempts: cli.MaxAttempts,
-		RandomDelay: jitter,
-		Condition:   cli.Condition,
-		Verbose:     cli.Verbose,
-		Timeout:     time.Duration(cli.Timeout * float64(time.Second)),
+	config := retryConfig{
+		Command:     cliConfig.Command,
+		Args:        cliConfig.Args,
+		Backoff:     cliConfig.Backoff,
+		FixedDelay:  interval{Start: cliConfig.Delay, End: cliConfig.MaxDelay},
+		MaxAttempts: cliConfig.MaxAttempts,
+		RandomDelay: jitterInterval,
+		Condition:   cliConfig.Condition,
+		Verbose:     cliConfig.Verbose,
+		Timeout:     time.Duration(cliConfig.Timeout * float64(time.Second)),
 	}
 
 	exitCode, err := retry(config)
