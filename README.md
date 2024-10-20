@@ -39,11 +39,11 @@ Flags:
   -j, --jitter="0,0"             additional random delay (maximum seconds or
                                  'min,max' seconds)
   -m, --max-delay=3600           maximum total delay (seconds)
-  -w, --timeout=0                timeout for each attempt (seconds, 0 for no
-                                 timeout)
-  -t, --tries=5                  maximum number of attempts (negative for
+  -t, --attempts=5               maximum number of attempts (negative for
                                  infinite)
   -v, --verbose                  increase verbosity
+  -w, --timeout=0                timeout for each attempt (seconds, 0 for no
+                                 timeout)
 ```
 
 recur exits with the last command's exit code unless the user overrides this in the condition.
@@ -72,7 +72,7 @@ You can use the following variables in the condition expression:
 - `code`: `int | None` — the exit code of the last command.
   `code` is `None` when the command was not found.
 - `command_found`: `bool` — whether the last command was found.
-- `max_tries`: `int` — the value of the option `--tries`.
+- `max_attempts`: `int` — the value of the option `--attempts`.
   `--forever` sets it to -1.
 - `time`: `float` — the time the most recent attempt took, in seconds.
 - `total_time`: `float` — the time between the start of the first attempt and the end of the most recent, again in seconds.
