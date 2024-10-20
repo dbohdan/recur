@@ -32,7 +32,7 @@ var (
 	commandExit99 = "test/exit99"
 	commandHello  = "test/hello"
 	commandRecur  = "./recur"
-	commandWait   = "test/wait"
+	commandSleep  = "test/sleep"
 	noSuchCommand = "no-such-command-should-exist"
 )
 
@@ -48,6 +48,7 @@ func runCommand(args ...string) (string, string, error) {
 
 func TestUsage(t *testing.T) {
 	stdout, _, _ := runCommand()
+
 	if matched, _ := regexp.MatchString("Usage", stdout); !matched {
 		t.Error("Expected 'Usage' in stdout")
 	}
@@ -55,6 +56,7 @@ func TestUsage(t *testing.T) {
 
 func TestVersion(t *testing.T) {
 	stdout, _, _ := runCommand("--version")
+
 	if matched, _ := regexp.MatchString("\\d+\\.\\d+\\.\\d+", stdout); !matched {
 		t.Error("Expected version format in stdout")
 	}
@@ -62,6 +64,7 @@ func TestVersion(t *testing.T) {
 
 func TestEcho(t *testing.T) {
 	stdout, _, _ := runCommand(commandHello)
+
 	if matched, _ := regexp.MatchString("hello", stdout); !matched {
 		t.Error("Expected 'hello' in stdout")
 	}
@@ -69,6 +72,7 @@ func TestEcho(t *testing.T) {
 
 func TestExitCode(t *testing.T) {
 	_, _, err := runCommand(commandExit99)
+
 	if exitErr, ok := err.(*exec.ExitError); !ok || exitErr.ExitCode() != 99 {
 		t.Errorf("Expected exit code 99, got %v", err)
 	}
@@ -76,6 +80,7 @@ func TestExitCode(t *testing.T) {
 
 func TestCommandNotFound(t *testing.T) {
 	_, _, err := runCommand(noSuchCommand)
+
 	if exitErr, ok := err.(*exec.ExitError); !ok || exitErr.ExitCode() != 255 {
 		t.Errorf("Expected exit code 255, got %v", err)
 	}
@@ -83,6 +88,7 @@ func TestCommandNotFound(t *testing.T) {
 
 func TestOptions(t *testing.T) {
 	_, _, err := runCommand("-b", "1", "-d", "0", "--jitter", "0,0.1", "-m", "0", "-t", "0", commandHello)
+
 	if err != nil {
 		t.Errorf("Expected no error, got %v", err)
 	}
@@ -90,9 +96,11 @@ func TestOptions(t *testing.T) {
 
 func TestVerbose(t *testing.T) {
 	_, stderr, _ := runCommand("-v", "-t", "3", commandExit99)
+
 	if count := len(regexp.MustCompile("command exited with code").FindAllString(stderr, -1)); count != 3 {
 		t.Errorf("Expected 3 instances of 'command exited with code', got %d", count)
 	}
+
 	if !strings.Contains(stderr, "on attempt 3\n") {
 		t.Error("Expected 'on attempt 3' in stderr")
 	}
@@ -100,6 +108,7 @@ func TestVerbose(t *testing.T) {
 
 func TestVerboseCommandNotFound(t *testing.T) {
 	_, stderr, _ := runCommand("-v", "-t", "3", noSuchCommand)
+
 	if count := len(regexp.MustCompile("command was not found").FindAllString(stderr, -1)); count != 3 {
 		t.Errorf("Expected 3 instances of 'command was not found', got %d", count)
 	}
@@ -107,6 +116,7 @@ func TestVerboseCommandNotFound(t *testing.T) {
 
 func TestVerboseTooMany(t *testing.T) {
 	_, stderr, _ := runCommand("-vvv", "")
+
 	if matched, _ := regexp.MatchString("error:.*?verbose flags", stderr); !matched {
 		t.Error("Expected 'error:.*?verbose flags' in stderr")
 	}
@@ -114,6 +124,7 @@ func TestVerboseTooMany(t *testing.T) {
 
 func TestStopOnSuccess(t *testing.T) {
 	stdout, _, _ := runCommand(commandHello)
+
 	if count := len(regexp.MustCompile("hello").FindAllString(stdout, -1)); count != 1 {
 		t.Errorf("Expected 1 instance of 'hello', got %d", count)
 	}
@@ -121,6 +132,7 @@ func TestStopOnSuccess(t *testing.T) {
 
 func TestConditionAttemptForever(t *testing.T) {
 	stdout, _, _ := runCommand("--condition", "attempt == 5", "--forever", commandHello)
+
 	if count := len(regexp.MustCompile("hello").FindAllString(stdout, -1)); count != 5 {
 		t.Errorf("Expected 5 instances of 'hello', got %d", count)
 	}
@@ -128,6 +140,7 @@ func TestConditionAttemptForever(t *testing.T) {
 
 func TestConditionAttemptTries(t *testing.T) {
 	stdout, _, _ := runCommand("--condition", "attempt == 5", "--tries=-1", commandHello)
+
 	if count := len(regexp.MustCompile("hello").FindAllString(stdout, -1)); count != 5 {
 		t.Errorf("Expected 5 instances of 'hello', got %d", count)
 	}
@@ -135,6 +148,7 @@ func TestConditionAttemptTries(t *testing.T) {
 
 func TestConditionExitIfCode(t *testing.T) {
 	_, _, err := runCommand("--condition", "exit(0) if code == 99 else 'fail'", commandExit99)
+
 	if err != nil {
 		t.Errorf("Expected no error, got %v", err)
 	}
@@ -142,6 +156,7 @@ func TestConditionExitIfCode(t *testing.T) {
 
 func TestConditionExitArgNone(t *testing.T) {
 	_, _, err := runCommand("-c", "exit(None)", commandHello)
+
 	if exitErr, ok := err.(*exec.ExitError); !ok || exitErr.ExitCode() != 255 {
 		t.Errorf("Expected exit code 255, got %v", err)
 	}
@@ -172,7 +187,8 @@ func TestConditionExitArgWrongType(t *testing.T) {
 }
 
 func TestConditionTimeAndTotalTime(t *testing.T) {
-	stdout, _, _ := runCommand("--condition", "total_time > time", commandWait)
+	stdout, _, _ := runCommand("--condition", "total_time > time", commandSleep, "0.1")
+
 	if count := len(regexp.MustCompile("T").FindAllString(stdout, -1)); count != 2 {
 		t.Errorf("Expected 2 instances of 'T', got %d", count)
 	}
@@ -180,6 +196,7 @@ func TestConditionTimeAndTotalTime(t *testing.T) {
 
 func TestConditionCommandNotFound(t *testing.T) {
 	_, _, err := runCommand("--condition", "command_found or exit(42)", noSuchCommand)
+
 	if exitErr, ok := err.(*exec.ExitError); !ok || exitErr.ExitCode() != 42 {
 		t.Errorf("Expected exit code 42, got %v", err)
 	}
@@ -187,8 +204,17 @@ func TestConditionCommandNotFound(t *testing.T) {
 
 func TestConditionCommandNotFoundCode(t *testing.T) {
 	_, _, err := runCommand("--condition", "code == None and exit(42)", noSuchCommand)
+
 	if exitErr, ok := err.(*exec.ExitError); !ok || exitErr.ExitCode() != 42 {
 		t.Errorf("Expected exit code 42, got %v", err)
+	}
+}
+
+func TestConditionTimeout(t *testing.T) {
+	_, stderr, _ := runCommand("--attempts", "3", "--timeout", "0.1", "--verbose", commandSleep, "1")
+
+	if count := len(regexp.MustCompile("command timed out").FindAllString(stderr, -1)); count != 3 {
+		t.Errorf("Expected 3 instances of 'command timed out', got %d", count)
 	}
 }
 

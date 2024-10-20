@@ -13,7 +13,7 @@ $build = @{
     "recur" = "main.go"
     "test/exit99" = "test/exit99.go"
     "test/hello" = "test/hello.go"
-    "test/wait" = "test/wait.go"
+    "test/sleep" = "test/sleep.go"
 }
 
 foreach ($dest in $build.Keys) {
