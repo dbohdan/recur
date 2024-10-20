@@ -46,7 +46,7 @@ type Attempt struct {
 	CommandFound bool
 	Duration     float64
 	ExitCode     int
-	MaxTries     int
+	MaxAttempts  int
 	Number       int
 	TotalTime    float64
 }
@@ -66,7 +66,7 @@ type RetryConfig struct {
 	Args        []string
 	Backoff     float64
 	FixedDelay  Interval
-	MaxTries    int
+	MaxAttempts int
 	RandomDelay Interval
 	Condition   string
 	Verbose     int
@@ -74,18 +74,18 @@ type RetryConfig struct {
 }
 
 type CLI struct {
-	Command   string           `arg:"" passthrough:"" help:"command to run"`
-	Args      []string         `arg:"" optional:"" name:"args" help:"arguments"`
-	Version   kong.VersionFlag `short:"V" help:"print version number and exit"`
-	Backoff   float64          `default:"0" short:"b" help:"base for exponential backoff (0 for no exponential backoff)"`
-	Condition string           `default:"code == 0" short:"c" help:"success condition (Starlark expression)"`
-	Delay     float64          `default:"0" short:"d" help:"constant delay (seconds)"`
-	Forever   bool             `short:"f" help:"infinite attempts"`
-	Jitter    string           `default:"0,0" short:"j" help:"additional random delay (maximum seconds or 'min,max' seconds)"`
-	MaxDelay  float64          `default:"3600" short:"m" help:"maximum total delay (seconds)"`
-	Timeout   time.Duration    `short:"w" default:"0" help:"timeout for each attempt (seconds, 0 for no timeout)"`
-	Tries     int              `default:"5" short:"t" help:"maximum number of attempts (negative for infinite)"`
-	Verbose   int              `short:"v" type:"counter" help:"increase verbosity"`
+	Command     string           `arg:"" passthrough:"" help:"command to run"`
+	Args        []string         `arg:"" optional:"" name:"args" help:"arguments"`
+	Version     kong.VersionFlag `short:"V" help:"print version number and exit"`
+	Backoff     float64          `default:"0" short:"b" help:"base for exponential backoff (0 for no exponential backoff)"`
+	Condition   string           `default:"code == 0" short:"c" help:"success condition (Starlark expression)"`
+	Delay       float64          `default:"0" short:"d" help:"constant delay (seconds)"`
+	Forever     bool             `short:"f" help:"infinite attempts"`
+	Jitter      string           `default:"0,0" short:"j" help:"additional random delay (maximum seconds or 'min,max' seconds)"`
+	MaxDelay    float64          `default:"3600" short:"m" help:"maximum total delay (seconds)"`
+	MaxAttempts int              `default:"5" short:"t" name:"attempts" aliases:"tries" help:"maximum number of attempts (negative for infinite)"`
+	Verbose     int              `short:"v" type:"counter" help:"increase verbosity"`
+	Timeout     time.Duration    `short:"w" default:"0" help:"timeout for each attempt (seconds, 0 for no timeout)"`
 }
 
 type elapsedTimeWriter struct {
@@ -166,7 +166,7 @@ func evaluateCondition(attempt Attempt, expr string) (bool, error) {
 		"attempt":       starlark.MakeInt(attempt.Number),
 		"code":          code,
 		"command_found": starlark.Bool(attempt.CommandFound),
-		"max_tries":     starlark.MakeInt(attempt.MaxTries),
+		"max_attempts":  starlark.MakeInt(attempt.MaxAttempts),
 		"time":          starlark.Float(attempt.Duration),
 		"total_time":    starlark.Float(attempt.TotalTime),
 	}
@@ -252,7 +252,7 @@ func retry(ctx context.Context, config RetryConfig) (int, error) {
 	var startTime time.Time
 	var totalTime time.Duration
 
-	for attempt := 1; config.MaxTries < 0 || attempt <= config.MaxTries; attempt++ {
+	for attempt := 1; config.MaxAttempts < 0 || attempt <= config.MaxAttempts; attempt++ {
 		delay := delayBeforeAttempt(attempt, config)
 		if delay > 0 {
 			if config.Verbose >= 1 {
@@ -284,7 +284,7 @@ func retry(ctx context.Context, config RetryConfig) (int, error) {
 			CommandFound: result.CommandFound,
 			Duration:     attemptDuration.Seconds(),
 			ExitCode:     result.ExitCode,
-			MaxTries:     config.MaxTries,
+			MaxAttempts:  config.MaxAttempts,
 			Number:       attempt,
 			TotalTime:    totalTime.Seconds(),
 		}
@@ -308,7 +308,7 @@ func retry(ctx context.Context, config RetryConfig) (int, error) {
 		}
 	}
 
-	return result.ExitCode, fmt.Errorf("maximum attempts reached (%d)", config.MaxTries)
+	return result.ExitCode, fmt.Errorf("maximum attempts reached (%d)", config.MaxAttempts)
 }
 
 func main() {
@@ -321,7 +321,7 @@ func main() {
 	)
 
 	if cli.Forever {
-		cli.Tries = -1
+		cli.MaxAttempts = -1
 	}
 
 	if cli.Verbose > MaxVerboseLevel {
@@ -338,7 +338,7 @@ func main() {
 		Args:        cli.Args,
 		Backoff:     cli.Backoff,
 		FixedDelay:  Interval{Start: cli.Delay, End: cli.MaxDelay},
-		MaxTries:    cli.Tries,
+		MaxAttempts: cli.MaxAttempts,
 		RandomDelay: jitter,
 		Condition:   cli.Condition,
 		Verbose:     cli.Verbose,

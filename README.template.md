@@ -48,7 +48,7 @@ You can use the following variables in the condition expression:
 - `code`: `int | None` — the exit code of the last command.
   `code` is `None` when the command was not found.
 - `command_found`: `bool` — whether the last command was found.
-- `max_tries`: `int` — the value of the option `--tries`.
+- `max_attempts`: `int` — the value of the option `--attempts`.
   `--forever` sets it to -1.
 - `time`: `float` — the time the most recent attempt took, in seconds.
 - `total_time`: `float` — the time between the start of the first attempt and the end of the most recent, again in seconds.
