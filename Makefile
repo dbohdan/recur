@@ -1,4 +1,4 @@
-TEST_BINARIES := test/exit99 test/hello test/wait
+TEST_BINARIES := test/exit99 test/hello test/sleep
 
 .PHONY: all
 all: README.md recur
@@ -23,5 +23,5 @@ test/exit99: test/exit99.go
 test/hello: test/hello.go
 	go build -o $@ test/hello.go
 
-test/wait: test/wait.go
-	go build -o $@ test/wait.go
+test/sleep: test/sleep.go
+	go build -o $@ test/sleep.go
