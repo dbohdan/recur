@@ -1,11 +1,14 @@
 TEST_BINARIES := test/exit99 test/hello test/wait
 
-.PHONY: default
-default: recur
+.PHONY: all
+all: README.md recur
 
 .PHONY: clean
 clean:
-	-rm recur $(TEST_BINARIES)
+	-rm README.md recur $(TEST_BINARIES)
+
+README.md: README.template.md recur
+	go run script/render_template.go < README.template.md > $@
 
 recur: main.go
 	CGO_ENABLED=0 go build
