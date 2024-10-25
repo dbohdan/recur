@@ -40,7 +40,7 @@ const (
 	exitCodeError           = -1
 	maxAllowedDelay         = 366 * 24 * 60 * 60
 	maxVerboseLevel         = 2
-	version                 = "0.6.0"
+	version                 = "0.6.1"
 )
 
 type attempt struct {
@@ -310,7 +310,7 @@ func retry(config retryConfig) (int, error) {
 		}
 
 		attemptInfo := attempt{
-			CommandFound: cmdResult.Status == statusFinished,
+			CommandFound: cmdResult.Status != statusNotFound,
 			Duration:     attemptDuration.Seconds(),
 			ExitCode:     cmdResult.ExitCode,
 			MaxAttempts:  config.MaxAttempts,
