@@ -87,7 +87,7 @@ func TestCommandNotFound(t *testing.T) {
 }
 
 func TestOptions(t *testing.T) {
-	_, _, err := runCommand("-b", "1", "-d", "0", "--jitter", "0,0.1", "-m", "0", "-t", "0", commandHello)
+	_, _, err := runCommand("-b", "1", "-d", "0", "--jitter", "0,0.1", "-m", "0", "-n", "0", commandHello)
 
 	if err != nil {
 		t.Errorf("Expected no error, got %v", err)
@@ -95,7 +95,7 @@ func TestOptions(t *testing.T) {
 }
 
 func TestVerbose(t *testing.T) {
-	_, stderr, _ := runCommand("-v", "-t", "3", commandExit99)
+	_, stderr, _ := runCommand("-v", "-n", "3", commandExit99)
 
 	if count := len(regexp.MustCompile("command exited with code").FindAllString(stderr, -1)); count != 3 {
 		t.Errorf("Expected 3 instances of 'command exited with code', got %d", count)
@@ -107,7 +107,7 @@ func TestVerbose(t *testing.T) {
 }
 
 func TestVerboseCommandNotFound(t *testing.T) {
-	_, stderr, _ := runCommand("-v", "-t", "3", noSuchCommand)
+	_, stderr, _ := runCommand("-v", "-n", "3", noSuchCommand)
 
 	if count := len(regexp.MustCompile("command was not found").FindAllString(stderr, -1)); count != 3 {
 		t.Errorf("Expected 3 instances of 'command was not found', got %d", count)
@@ -138,8 +138,8 @@ func TestConditionAttemptForever(t *testing.T) {
 	}
 }
 
-func TestConditionAttemptTries(t *testing.T) {
-	stdout, _, _ := runCommand("--condition", "attempt == 5", "--tries=-1", commandHello)
+func TestConditionAttemptNegative(t *testing.T) {
+	stdout, _, _ := runCommand("--attempts=-1", "--condition", "attempt == 5", commandHello)
 
 	if count := len(regexp.MustCompile("hello").FindAllString(stdout, -1)); count != 5 {
 		t.Errorf("Expected 5 instances of 'hello', got %d", count)

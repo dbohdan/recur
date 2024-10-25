@@ -40,7 +40,7 @@ const (
 	exitCodeError           = -1
 	maxAllowedDelay         = 366 * 24 * 60 * 60
 	maxVerboseLevel         = 2
-	version                 = "0.6.1"
+	version                 = "0.7.0"
 )
 
 type attempt struct {
@@ -93,9 +93,9 @@ type cli struct {
 	Forever     bool             `short:"f" help:"infinite attempts"`
 	Jitter      string           `default:"0,0" short:"j" help:"additional random delay (maximum seconds or 'min,max' seconds)"`
 	MaxDelay    float64          `default:"3600" short:"m" help:"maximum total delay (seconds)"`
-	MaxAttempts int              `default:"5" short:"t" name:"attempts" aliases:"tries" help:"maximum number of attempts (negative for infinite)"`
+	MaxAttempts int              `default:"5" short:"n" name:"attempts" aliases:"tries" help:"maximum number of attempts (negative for infinite)"`
+	Timeout     float64          `short:"t" default:"0" help:"timeout for each attempt (seconds, 0 for no timeout)"`
 	Verbose     int              `short:"v" type:"counter" help:"increase verbosity"`
-	Timeout     float64          `short:"w" default:"0" help:"timeout for each attempt (seconds, 0 for no timeout)"`
 }
 
 type elapsedTimeWriter struct {

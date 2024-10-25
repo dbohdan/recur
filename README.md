@@ -39,11 +39,11 @@ Flags:
   -j, --jitter="0,0"             additional random delay (maximum seconds or
                                  'min,max' seconds)
   -m, --max-delay=3600           maximum total delay (seconds)
-  -t, --attempts=5               maximum number of attempts (negative for
+  -n, --attempts=5               maximum number of attempts (negative for
                                  infinite)
-  -v, --verbose                  increase verbosity
-  -w, --timeout=0                timeout for each attempt (seconds, 0 for no
+  -t, --timeout=0                timeout for each attempt (seconds, 0 for no
                                  timeout)
+  -v, --verbose                  increase verbosity
 ```
 
 recur exits with the last command's exit code unless the user overrides this in the condition.
