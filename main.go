@@ -381,5 +381,3 @@ func main() {
 
 	os.Exit(exitCode)
 }
-
-// vim: set tabstop=4:
