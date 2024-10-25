@@ -22,5 +22,3 @@ func main() {
 	time.Sleep(time.Duration(seconds * float64(time.Second)))
 	fmt.Printf("T\n")
 }
-
-// vim: set tabstop=4:

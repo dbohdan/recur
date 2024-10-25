@@ -217,5 +217,3 @@ func TestConditionTimeout(t *testing.T) {
 		t.Errorf("Expected 3 instances of 'command timed out', got %d", count)
 	}
 }
-
-// vim: set tabstop=4:
