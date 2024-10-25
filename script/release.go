@@ -70,7 +70,7 @@ func build(dir string, target BuildTarget, version string) error {
 		arch = "x86_64"
 	}
 
-	filename := fmt.Sprintf("%s-%s-%s-%s%s", projectName, version, target.os, arch, ext)
+	filename := fmt.Sprintf("%s-v%s-%s-%s%s", projectName, version, target.os, arch, ext)
 	outputPath := filepath.Join(dir, filename)
 
 	cmd := exec.Command("go", "build", "-trimpath", "-o", outputPath, ".")
