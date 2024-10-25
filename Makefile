@@ -13,6 +13,10 @@ README.md: README.template.md recur
 recur: main.go
 	CGO_ENABLED=0 go build
 
+.PHONY: release
+release:
+	go run script/release.go
+
 .PHONY: test
 test: recur $(TEST_BINARIES)
 	go test
