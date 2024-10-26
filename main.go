@@ -291,6 +291,10 @@ func retry(config retryConfig) (int, error) {
 	log.SetOutput(customWriter)
 	log.SetFlags(0)
 
+	if config.Verbose >= 1 && strings.HasPrefix(config.Command, "-") {
+		logger.Printf("warning: command starts with '-': %s", config.Command)
+	}
+
 	var cmdResult commandResult
 	var startTime time.Time
 	var totalTime time.Duration
