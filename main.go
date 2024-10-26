@@ -95,7 +95,7 @@ type cli struct {
 	Jitter      string           `default:"0,0" short:"j" help:"additional random delay (maximum duration or 'min,max' duration)"`
 	MaxDelay    time.Duration    `default:"1h" short:"m" help:"maximum total delay (duration)"`
 	MaxAttempts int              `default:"5" short:"n" name:"attempts" aliases:"tries" help:"maximum number of attempts (negative for infinite)"`
-	Timeout     time.Duration    `short:"t" default:"0" help:"timeout for each attempt (duration; 0 for no timeout)"`
+	Timeout     time.Duration    `short:"t" default:"-1s" help:"timeout for each attempt (duration; negative for no timeout)"`
 	Verbose     int              `short:"v" type:"counter" help:"increase verbosity"`
 }
 
@@ -222,7 +222,7 @@ func executeCommand(command string, args []string, timeout time.Duration) comman
 	}
 
 	ctx := context.Background()
-	if timeout > 0 {
+	if timeout >= 0 {
 		var cancel context.CancelFunc
 		ctx, cancel = context.WithTimeout(ctx, timeout)
 		defer cancel()

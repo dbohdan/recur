@@ -40,8 +40,8 @@ Flags:
   -m, --max-delay=1h             maximum total delay (duration)
   -n, --attempts=5               maximum number of attempts (negative for
                                  infinite)
-  -t, --timeout=0                timeout for each attempt (duration; 0 for no
-                                 timeout)
+  -t, --timeout=-1s              timeout for each attempt (duration; negative
+                                 for no timeout)
   -v, --verbose                  increase verbosity
 ```
 
