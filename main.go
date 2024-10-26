@@ -263,6 +263,10 @@ func delayBeforeAttempt(attemptNum int, config retryConfig) time.Duration {
 	return time.Duration((currFixed + currRandom) * float64(time.Second))
 }
 
+func formatDuration(d time.Duration) string {
+	return d.Round(time.Millisecond).String()
+}
+
 func retry(config retryConfig) (int, error) {
 	customWriter := &elapsedTimeWriter{
 		startTime: time.Now(),
@@ -280,7 +284,7 @@ func retry(config retryConfig) (int, error) {
 		delay := delayBeforeAttempt(attemptNum, config)
 		if delay > 0 {
 			if config.Verbose >= 1 {
-				logger.Printf("waiting %v before attempt %d", delay, attemptNum)
+				logger.Printf("waiting %s before attempt %d", formatDuration(delay), attemptNum)
 			}
 			time.Sleep(delay)
 		}
