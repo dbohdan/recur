@@ -87,7 +87,7 @@ func TestCommandNotFound(t *testing.T) {
 }
 
 func TestOptions(t *testing.T) {
-	_, _, err := runCommand("-b", "1", "-d", "0", "--jitter", "0,0.1", "-m", "0", "-n", "0", commandHello)
+	_, _, err := runCommand("-b", "1s", "-d", "0", "--jitter", "0,0.1s", "-m", "0", "-n", "0", commandHello)
 
 	if err != nil {
 		t.Errorf("Expected no error, got %v", err)
@@ -211,7 +211,7 @@ func TestConditionCommandNotFoundCode(t *testing.T) {
 }
 
 func TestConditionTimeout(t *testing.T) {
-	_, stderr, _ := runCommand("--attempts", "3", "--timeout", "0.1", "--verbose", commandSleep, "1")
+	_, stderr, _ := runCommand("--attempts", "3", "--timeout", "100ms", "--verbose", commandSleep, "1")
 
 	if count := len(regexp.MustCompile("command timed out").FindAllString(stderr, -1)); count != 3 {
 		t.Errorf("Expected 3 instances of 'command timed out', got %d", count)

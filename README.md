@@ -31,20 +31,23 @@ Arguments:
 Flags:
   -h, --help                     Show context-sensitive help.
   -V, --version                  print version number and exit
-  -b, --backoff=0                base for exponential backoff (0 for no
-                                 exponential backoff)
+  -b, --backoff=0                base for exponential backoff (duration)
   -c, --condition="code == 0"    success condition (Starlark expression)
-  -d, --delay=0                  constant delay (seconds)
+  -d, --delay=0                  constant delay (duration)
   -f, --forever                  infinite attempts
-  -j, --jitter="0,0"             additional random delay (maximum seconds or
-                                 'min,max' seconds)
-  -m, --max-delay=3600           maximum total delay (seconds)
+  -j, --jitter="0,0"             additional random delay (maximum duration or
+                                 'min,max' duration)
+  -m, --max-delay=1h             maximum total delay (duration)
   -n, --attempts=5               maximum number of attempts (negative for
                                  infinite)
-  -t, --timeout=0                timeout for each attempt (seconds, 0 for no
+  -t, --timeout=0                timeout for each attempt (duration; 0 for no
                                  timeout)
   -v, --verbose                  increase verbosity
 ```
+
+The "duration" arguments take [Go duration strings](https://pkg.go.dev/time#ParseDuration);
+for example, `0`, `100ms`, `2.5s`, `0.5m`, or `1h`.
+The `-j`/`--jitter` argument must be either one duration string or two joined with a comma, like `1s,2s`.
 
 recur exits with the last command's exit code unless the user overrides this in the condition.
 When the command is not found during the last attempt,

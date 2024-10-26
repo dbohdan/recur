@@ -22,6 +22,10 @@ go install github.com/dbohdan/recur@latest
 ```none
 {{ .Help }}```
 
+The "duration" arguments take [Go duration strings](https://pkg.go.dev/time#ParseDuration);
+for example, `0`, `100ms`, `2.5s`, `0.5m`, or `1h`.
+The `-j`/`--jitter` argument must be either one duration string or two joined with a comma, like `1s,2s`.
+
 recur exits with the last command's exit code unless the user overrides this in the condition.
 When the command is not found during the last attempt,
 recur exits with the code 255.
