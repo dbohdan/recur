@@ -24,7 +24,7 @@ type BuildTarget struct {
 func main() {
 	version := os.Getenv("VERSION")
 	if version == "" {
-		fmt.Fprintln(os.Stderr, "VERSION environment variable must be set")
+		fmt.Fprintln(os.Stderr, "'VERSION' environment variable must be set")
 		os.Exit(1)
 	}
 
@@ -35,10 +35,12 @@ func main() {
 	}
 
 	targets := []BuildTarget{
+		{"darwin", "amd64"},
+		{"darwin", "arm64"},
+		{"freebsd", "amd64"},
 		{"linux", "amd64"},
 		{"linux", "arm64"},
 		{"linux", "riscv64"},
-		{"freebsd", "amd64"},
 		{"netbsd", "amd64"},
 		{"openbsd", "amd64"},
 		{"windows", "386"},
@@ -63,14 +65,22 @@ func build(dir string, target BuildTarget, version string) error {
 
 	// Map Go to user architecture names.
 	arch := target.arch
+	system := target.os
+
 	if arch == "386" {
-		arch = "i386"
+		arch = "x86"
 	}
-	if target.os == "linux" && arch == "amd64" {
+	if system == "darwin" {
+		system = "macos"
+	}
+	if (system == "linux" || system == "macos") && arch == "amd64" {
 		arch = "x86_64"
 	}
+	if system == "linux" && arch == "arm64" {
+		arch = "aarch64"
+	}
 
-	filename := fmt.Sprintf("%s-v%s-%s-%s%s", projectName, version, target.os, arch, ext)
+	filename := fmt.Sprintf("%s-v%s-%s-%s%s", projectName, version, system, arch, ext)
 	outputPath := filepath.Join(dir, filename)
 
 	cmd := exec.Command("go", "build", "-trimpath", "-o", outputPath, ".")
