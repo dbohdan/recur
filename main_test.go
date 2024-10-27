@@ -117,8 +117,8 @@ func TestVerboseCommandNotFound(t *testing.T) {
 func TestVerboseConfig(t *testing.T) {
 	_, stderr, _ := runCommand("-vv", "--verbose", commandHello)
 
-	if matched, _ := regexp.MatchString(`main\.retryConfig{.*}\n`, stderr); !matched {
-		t.Error(`Expected 'main\.retryConfig{.*}\n' in stderr`)
+	if matched, _ := regexp.MatchString(`main\.retryConfig{\n`, stderr); !matched {
+		t.Error(`Expected 'main\.retryConfig{\n' in stderr`)
 	}
 }
 

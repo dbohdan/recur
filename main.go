@@ -585,7 +585,7 @@ func main() {
 	log.SetFlags(0)
 
 	if config.Verbose >= 3 {
-		log.Printf("configuration: %s\n", repr.String(config, repr.OmitEmpty(false)))
+		log.Printf("configuration:\n%s\n", repr.String(config, repr.Indent("  "), repr.OmitEmpty(false)))
 	}
 
 	exitCode, err := retry(config)
