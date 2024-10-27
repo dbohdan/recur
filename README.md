@@ -38,7 +38,7 @@ Flags:
   -V, --version
   Print version number and exit.
 
-  -a, --attempts 5
+  -a, --attempts 10
   Maximum number of attempts (negative for infinite).
 
   -b, --backoff 0

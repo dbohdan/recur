@@ -93,7 +93,7 @@ const (
 	delayDefault       = time.Duration(0)
 	jitterDefault      = "0,0"
 	maxDelayDefault    = time.Duration(time.Hour)
-	maxAttemptsDefault = 5
+	maxAttemptsDefault = 10
 	timeoutDefault     = time.Duration(-time.Second)
 )
 
