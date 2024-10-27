@@ -41,7 +41,7 @@ const (
 	exitCodeError           = -1
 	maxAllowedDelay         = 366 * 24 * 60 * 60
 	maxVerboseLevel         = 2
-	version                 = "0.7.0"
+	version                 = "0.8.0"
 )
 
 type attempt struct {
