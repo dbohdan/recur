@@ -63,7 +63,7 @@ func build(dir string, target BuildTarget, version string) error {
 		ext = ".exe"
 	}
 
-	// Map Go to user architecture names.
+	// Map `GOARCH` and `GOOS` to user-facing names.
 	arch := target.arch
 	system := target.os
 
