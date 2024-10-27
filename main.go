@@ -357,7 +357,7 @@ func retry(config retryConfig) (int, error) {
 		}
 	}
 
-	return cmdResult.ExitCode, fmt.Errorf("maximum attempts reached (%d)", config.MaxAttempts)
+	return cmdResult.ExitCode, fmt.Errorf("maximum %d attempts reached", config.MaxAttempts)
 }
 
 func usage(w io.Writer) {
