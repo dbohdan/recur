@@ -93,7 +93,7 @@ type cli struct {
 	Delay       time.Duration    `default:"0" short:"d" help:"constant delay (duration)"`
 	Forever     bool             `short:"f" help:"infinite attempts"`
 	Jitter      string           `default:"0,0" short:"j" help:"additional random delay (maximum duration or 'min,max' duration)"`
-	MaxDelay    time.Duration    `default:"1h" short:"m" help:"maximum total delay (duration)"`
+	MaxDelay    time.Duration    `default:"1h" short:"m" help:"maximum allowed sum of constant delay and exponential backoff (duration)"`
 	MaxAttempts int              `default:"5" short:"n" name:"attempts" aliases:"tries" help:"maximum number of attempts (negative for infinite)"`
 	Timeout     time.Duration    `short:"t" default:"-1s" help:"timeout for each attempt (duration; negative for no timeout)"`
 	Verbose     int              `short:"v" type:"counter" help:"increase verbosity"`

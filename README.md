@@ -37,7 +37,8 @@ Flags:
   -f, --forever                  infinite attempts
   -j, --jitter="0,0"             additional random delay (maximum duration or
                                  'min,max' duration)
-  -m, --max-delay=1h             maximum total delay (duration)
+  -m, --max-delay=1h             maximum allowed sum of constant delay and
+                                 exponential backoff (duration)
   -n, --attempts=5               maximum number of attempts (negative for
                                  infinite)
   -t, --timeout=-1s              timeout for each attempt (duration; negative
