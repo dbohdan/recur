@@ -3,7 +3,7 @@ module github.com/dbohdan/recur
 go 1.19
 
 require (
-	github.com/alecthomas/kong v1.2.1
+	github.com/alecthomas/repr v0.4.0
 	go.starlark.net v0.0.0-20240925182052-1207426daebd
 )
 

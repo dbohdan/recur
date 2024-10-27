@@ -24,15 +24,18 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"log"
 	"math"
 	"math/rand"
 	"os"
 	"os/exec"
+	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 
-	"github.com/alecthomas/kong"
+	"github.com/alecthomas/repr"
 	"go.starlark.net/starlark"
 )
 
@@ -40,7 +43,7 @@ const (
 	exitCodeCommandNotFound = 255
 	exitCodeError           = -1
 	maxAllowedDelay         = 366 * 24 * 60 * 60
-	maxVerboseLevel         = 2
+	maxVerboseLevel         = 3
 	version                 = "0.8.0"
 )
 
@@ -76,28 +79,23 @@ type retryConfig struct {
 	Command     string
 	Args        []string
 	Backoff     time.Duration
+	Condition   string
 	FixedDelay  interval
 	MaxAttempts int
 	RandomDelay interval
-	Condition   string
-	Verbose     int
 	Timeout     time.Duration
+	Verbose     int
 }
 
-type cli struct {
-	Command     string           `arg:"" passthrough:"" help:"command to run"`
-	Args        []string         `arg:"" optional:"" name:"args" help:"arguments"`
-	Version     kong.VersionFlag `short:"V" help:"print version number and exit"`
-	Backoff     time.Duration    `default:"0" short:"b" help:"base for exponential backoff (duration)"`
-	Condition   string           `default:"code == 0" short:"c" help:"success condition (Starlark expression)"`
-	Delay       time.Duration    `default:"0" short:"d" help:"constant delay (duration)"`
-	Forever     bool             `short:"f" help:"infinite attempts"`
-	Jitter      string           `default:"0,0" short:"j" help:"additional random delay (maximum duration or 'min,max' duration)"`
-	MaxDelay    time.Duration    `default:"1h" short:"m" help:"maximum allowed sum of constant delay and exponential backoff (duration)"`
-	MaxAttempts int              `default:"5" short:"n" name:"attempts" aliases:"tries" help:"maximum number of attempts (negative for infinite)"`
-	Timeout     time.Duration    `short:"t" default:"-1s" help:"timeout for each attempt (duration; negative for no timeout)"`
-	Verbose     int              `short:"v" type:"counter" help:"increase verbosity"`
-}
+const (
+	backoffDefault     = time.Duration(0)
+	conditionDefault   = "code == 0"
+	delayDefault       = time.Duration(0)
+	jitterDefault      = "0,0"
+	maxDelayDefault    = time.Duration(time.Hour)
+	maxAttemptsDefault = 5
+	timeoutDefault     = time.Duration(-time.Second)
+)
 
 type elapsedTimeWriter struct {
 	startTime time.Time
@@ -279,22 +277,21 @@ func delayBeforeAttempt(attemptNum int, config retryConfig) time.Duration {
 }
 
 func formatDuration(d time.Duration) string {
-	return d.Round(time.Millisecond).String()
+	d = d.Round(time.Millisecond)
+	if d > time.Second {
+		d = d.Round(100 * time.Millisecond)
+	}
+
+	zeroUnits := regexp.MustCompile("(^|[^0-9])(?:0h)?(?:0m)?(?:0s)?$")
+	s := zeroUnits.ReplaceAllString(d.String(), "$1")
+
+	if s == "" {
+		return "0"
+	}
+	return s
 }
 
 func retry(config retryConfig) (int, error) {
-	customWriter := &elapsedTimeWriter{
-		startTime: time.Now(),
-	}
-	logger := log.New(customWriter, "", 0)
-
-	log.SetOutput(customWriter)
-	log.SetFlags(0)
-
-	if config.Verbose >= 1 && strings.HasPrefix(config.Command, "-") {
-		logger.Printf("warning: command starts with '-': %s", config.Command)
-	}
-
 	var cmdResult commandResult
 	var startTime time.Time
 	var totalTime time.Duration
@@ -303,7 +300,7 @@ func retry(config retryConfig) (int, error) {
 		delay := delayBeforeAttempt(attemptNum, config)
 		if delay > 0 {
 			if config.Verbose >= 1 {
-				logger.Printf("waiting %s before attempt %d", formatDuration(delay), attemptNum)
+				log.Printf("waiting %s before attempt %d", formatDuration(delay), attemptNum)
 			}
 			time.Sleep(delay)
 		}
@@ -322,13 +319,13 @@ func retry(config retryConfig) (int, error) {
 		if config.Verbose >= 1 {
 			switch cmdResult.Status {
 			case statusFinished:
-				logger.Printf("command exited with code %d on attempt %d", cmdResult.ExitCode, attemptNum)
+				log.Printf("command exited with code %d on attempt %d", cmdResult.ExitCode, attemptNum)
 			case statusTimeout:
-				logger.Printf("command timed out after %s on attempt %d", formatDuration(attemptDuration), attemptNum)
+				log.Printf("command timed out after %s on attempt %d", formatDuration(attemptDuration), attemptNum)
 			case statusNotFound:
-				logger.Printf("command was not found on attempt %d", attemptNum)
+				log.Printf("command was not found on attempt %d", attemptNum)
 			case statusUnknownError:
-				logger.Printf("unknown error occurred on attempt %d", attemptNum)
+				log.Printf("unknown error occurred on attempt %d", attemptNum)
 			}
 		}
 
@@ -356,45 +353,239 @@ func retry(config retryConfig) (int, error) {
 		}
 
 		if config.Verbose >= 2 {
-			logger.Printf("condition not met; continuing to next attempt")
+			log.Printf("condition not met; continuing to next attempt")
 		}
 	}
 
 	return cmdResult.ExitCode, fmt.Errorf("maximum attempts reached (%d)", config.MaxAttempts)
 }
 
-func main() {
-	var cliConfig cli
-	kongCtx := kong.Parse(&cliConfig,
-		kong.Name("recur"),
-		kong.Description("Retry a command with exponential backoff and jitter."),
-		kong.UsageOnError(),
-		kong.Vars{"version": version},
+func usage(w io.Writer) {
+	fmt.Fprintf(
+		w,
+		`Usage: %s [-b <backoff>] [-c <condition>] [-d <delay>] [-f] [-j <jitter>] [-m <max-delay>] [-n <attempt>] [-t <timeout>] [-v] <command> [<arg> ...]
+`,
+		filepath.Base(os.Args[0]),
 	)
+}
 
-	if cliConfig.Forever {
-		cliConfig.MaxAttempts = -1
-	}
+func help() {
+	usage(os.Stdout)
 
-	if cliConfig.Verbose > maxVerboseLevel {
-		kongCtx.Fatalf("up to %d verbose flags is allowed", maxVerboseLevel)
-	}
+	fmt.Printf(
+		`
+Retry a command with exponential backoff and jitter.
 
-	jitterInterval, err := parseInterval(cliConfig.Jitter)
-	if err != nil {
-		kongCtx.Fatalf("invalid jitter: %v", err)
-	}
+Arguments:
+  <command>
+  Command to run.
 
+  [<arg> ...]
+  Arguments to the command.
+
+Flags:
+  -h, --help
+  Print this help message and exit.
+
+  -V, --version
+  Print version number and exit.
+
+  -b, --backoff %v
+  Base for exponential backoff (duration).
+
+  -c, --condition "%v"
+  Success condition (Starlark expression).
+
+  -d, --delay %v
+  Constant delay (duration).
+
+  -f, --forever
+  Infinite attempts.
+
+  -j, --jitter "%v"
+  Additional random delay (maximum duration or 'min,max' duration).
+
+  -m, --max-delay %v
+  Maximum allowed sum of constant delay and exponential backoff (duration).
+
+  -n, --attempts %v
+  Maximum number of attempts (negative for infinite).
+
+  -t, --timeout %v
+  Timeout for each attempt (duration; negative for no timeout).
+
+  -v, --verbose
+  Increase verbosity (up to %v times).
+`,
+		formatDuration(backoffDefault),
+		conditionDefault,
+		formatDuration(delayDefault),
+		jitterDefault,
+		formatDuration(maxDelayDefault),
+		maxAttemptsDefault,
+		formatDuration(timeoutDefault),
+		maxVerboseLevel,
+	)
+}
+
+func parseArgs() retryConfig {
 	config := retryConfig{
-		Command:     cliConfig.Command,
-		Args:        cliConfig.Args,
-		Backoff:     cliConfig.Backoff,
-		FixedDelay:  interval{Start: cliConfig.Delay, End: cliConfig.MaxDelay},
-		MaxAttempts: cliConfig.MaxAttempts,
-		RandomDelay: jitterInterval,
-		Condition:   cliConfig.Condition,
-		Verbose:     cliConfig.Verbose,
-		Timeout:     cliConfig.Timeout,
+		Args:        []string{},
+		Backoff:     backoffDefault,
+		Condition:   conditionDefault,
+		FixedDelay:  interval{Start: delayDefault, End: maxDelayDefault},
+		MaxAttempts: maxAttemptsDefault,
+		Timeout:     timeoutDefault,
+	}
+
+	// Check early for special flags that override argument validation.
+	for _, arg := range os.Args {
+		switch arg {
+		case "-h", "--help":
+			help()
+			os.Exit(0)
+
+		case "-V", "--version":
+			fmt.Printf("%s\n", version)
+			os.Exit(0)
+		}
+	}
+
+	usageError := func(message string, badValue interface{}) {
+		fmt.Fprintf(os.Stderr, "Error: "+message+"\n", badValue)
+		usage(os.Stderr)
+		os.Exit(2)
+	}
+
+	vShortFlags := regexp.MustCompile("^-v+$")
+
+	// Parse the command-line flags.
+	var i int
+	for i = 1; i < len(os.Args); i++ {
+		arg := os.Args[i]
+		nextArg := func(flag string) string {
+			i++
+
+			if i >= len(os.Args) {
+				usageError("no value for flag '%s'", flag)
+			}
+
+			return os.Args[i]
+		}
+
+		if arg == "--" || !strings.HasPrefix(arg, "-") {
+			break
+		}
+
+		switch arg {
+		case "-b", "--backoff":
+			value := nextArg(arg)
+
+			backoff, err := time.ParseDuration(value)
+			if err != nil {
+				usageError("invalid backoff: %v", value)
+			}
+
+			config.Backoff = backoff
+
+		case "-c", "--condition":
+			config.Condition = nextArg(arg)
+
+		case "-d", "--delay":
+			value := nextArg(arg)
+
+			delay, err := time.ParseDuration(value)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "invalid delay: %v", value)
+				os.Exit(2)
+			}
+
+			config.FixedDelay.Start = delay
+
+		case "-f", "--forever":
+			config.MaxAttempts = -1
+
+		case "-j", "--jitter":
+			jitter, err := parseInterval(nextArg(arg))
+			if err != nil {
+				usageError("invalid jitter: %v", err)
+			}
+
+			config.RandomDelay = jitter
+
+		case "-m", "--max-delay":
+			value := nextArg(arg)
+
+			maxDelay, err := time.ParseDuration(value)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "invalid maximum delay: %v", value)
+				os.Exit(2)
+			}
+
+			config.FixedDelay.End = maxDelay
+
+		case "-n", "--attempts", "--tries":
+			value := nextArg(arg)
+
+			var maxAttempts int
+			_, err := fmt.Sscanf(value, "%d", &maxAttempts)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "invalid maximum number of attempts: %v", value)
+				os.Exit(2)
+			}
+
+			config.MaxAttempts = maxAttempts
+
+		case "-t", "--timeout":
+			value := nextArg(arg)
+
+			timeout, err := time.ParseDuration(value)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "invalid timeout: %v", value)
+				os.Exit(2)
+			}
+
+			config.Timeout = timeout
+
+		case "--verbose":
+			config.Verbose++
+
+		default:
+			if vShortFlags.MatchString(arg) {
+				config.Verbose += len(arg) - 1
+				continue
+			}
+
+			usageError("unknown flag: %v", arg)
+		}
+	}
+
+	if config.Verbose > maxVerboseLevel {
+		usageError("up to %d verbose flags is allowed", maxVerboseLevel)
+	}
+
+	if i >= len(os.Args) {
+		usageError("<command> is required%v", "")
+	}
+
+	config.Command = os.Args[i]
+	config.Args = os.Args[i+1:]
+
+	return config
+}
+
+func main() {
+	config := parseArgs()
+
+	// Configure logging.
+	customWriter := &elapsedTimeWriter{
+		startTime: time.Now(),
+	}
+	log.SetOutput(customWriter)
+	log.SetFlags(0)
+
+	if config.Verbose >= 3 {
+		log.Printf("configuration: %s\n", repr.String(config, repr.OmitEmpty(false)))
 	}
 
 	exitCode, err := retry(config)

@@ -20,30 +20,50 @@ go install github.com/dbohdan/recur@latest
 ## Usage
 
 ```none
-Usage: recur <command> [<args> ...] [flags]
+Usage: recur [-b <backoff>] [-c <condition>] [-d <delay>] [-f] [-j <jitter>] [-m <max-delay>] [-n <attempt>] [-t <timeout>] [-v] <command> [<arg> ...]
 
 Retry a command with exponential backoff and jitter.
 
 Arguments:
-  <command>       command to run
-  [<args> ...]    arguments
+  <command>
+  Command to run.
+
+  [<arg> ...]
+  Arguments to the command.
 
 Flags:
-  -h, --help                     Show context-sensitive help.
-  -V, --version                  print version number and exit
-  -b, --backoff=0                base for exponential backoff (duration)
-  -c, --condition="code == 0"    success condition (Starlark expression)
-  -d, --delay=0                  constant delay (duration)
-  -f, --forever                  infinite attempts
-  -j, --jitter="0,0"             additional random delay (maximum duration or
-                                 'min,max' duration)
-  -m, --max-delay=1h             maximum allowed sum of constant delay and
-                                 exponential backoff (duration)
-  -n, --attempts=5               maximum number of attempts (negative for
-                                 infinite)
-  -t, --timeout=-1s              timeout for each attempt (duration; negative
-                                 for no timeout)
-  -v, --verbose                  increase verbosity
+  -h, --help
+  Print this help message and exit.
+
+  -V, --version
+  Print version number and exit.
+
+  -b, --backoff 0
+  Base for exponential backoff (duration).
+
+  -c, --condition "code == 0"
+  Success condition (Starlark expression).
+
+  -d, --delay 0
+  Constant delay (duration).
+
+  -f, --forever
+  Infinite attempts.
+
+  -j, --jitter "0,0"
+  Additional random delay (maximum duration or 'min,max' duration).
+
+  -m, --max-delay 1h
+  Maximum allowed sum of constant delay and exponential backoff (duration).
+
+  -n, --attempts 5
+  Maximum number of attempts (negative for infinite).
+
+  -t, --timeout -1s
+  Timeout for each attempt (duration; negative for no timeout).
+
+  -v, --verbose
+  Increase verbosity (up to 3 times).
 ```
 
 The "duration" arguments take [Go duration strings](https://pkg.go.dev/time#ParseDuration);

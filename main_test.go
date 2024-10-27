@@ -47,17 +47,17 @@ func runCommand(args ...string) (string, string, error) {
 }
 
 func TestUsage(t *testing.T) {
-	stdout, _, _ := runCommand()
+	_, stderr, _ := runCommand()
 
-	if matched, _ := regexp.MatchString("Usage", stdout); !matched {
-		t.Error("Expected 'Usage' in stdout")
+	if matched, _ := regexp.MatchString("Usage", stderr); !matched {
+		t.Error("Expected 'Usage' in stderr")
 	}
 }
 
 func TestVersion(t *testing.T) {
 	stdout, _, _ := runCommand("--version")
 
-	if matched, _ := regexp.MatchString("\\d+\\.\\d+\\.\\d+", stdout); !matched {
+	if matched, _ := regexp.MatchString(`\d+\.\d+\.\d+`, stdout); !matched {
 		t.Error("Expected version format in stdout")
 	}
 }
@@ -114,11 +114,19 @@ func TestVerboseCommandNotFound(t *testing.T) {
 	}
 }
 
-func TestVerboseTooMany(t *testing.T) {
-	_, stderr, _ := runCommand("-vvv", "")
+func TestVerboseConfig(t *testing.T) {
+	_, stderr, _ := runCommand("-vv", "--verbose", commandHello)
 
-	if matched, _ := regexp.MatchString("error:.*?verbose flags", stderr); !matched {
-		t.Error("Expected 'error:.*?verbose flags' in stderr")
+	if matched, _ := regexp.MatchString(`main\.retryConfig{.*}\n`, stderr); !matched {
+		t.Error(`Expected 'main\.retryConfig{.*}\n' in stderr`)
+	}
+}
+
+func TestVerboseTooMany(t *testing.T) {
+	_, stderr, _ := runCommand("-vvvvvv", "")
+
+	if matched, _ := regexp.MatchString("Error:.*?verbose flags", stderr); !matched {
+		t.Error("Expected 'Error:.*?verbose flags' in stderr")
 	}
 }
 
@@ -139,7 +147,7 @@ func TestConditionAttemptForever(t *testing.T) {
 }
 
 func TestConditionAttemptNegative(t *testing.T) {
-	stdout, _, _ := runCommand("--attempts=-1", "--condition", "attempt == 5", commandHello)
+	stdout, _, _ := runCommand("--tries", "-1", "--condition", "attempt == 5", commandHello)
 
 	if count := len(regexp.MustCompile("hello").FindAllString(stdout, -1)); count != 5 {
 		t.Errorf("Expected 5 instances of 'hello', got %d", count)
