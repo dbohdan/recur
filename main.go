@@ -363,7 +363,7 @@ func retry(config retryConfig) (int, error) {
 func usage(w io.Writer) {
 	fmt.Fprintf(
 		w,
-		`Usage: %s [-b <backoff>] [-c <condition>] [-d <delay>] [-f] [-j <jitter>] [-m <max-delay>] [-n <attempt>] [-t <timeout>] [-v] <command> [<arg> ...]
+		`Usage: %s [-a <attempts>] [-b <backoff>] [-c <condition>] [-d <delay>] [-f] [-j <jitter>] [-m <max-delay>] [-t <timeout>] [-v] <command> [<arg> ...]
 `,
 		filepath.Base(os.Args[0]),
 	)
@@ -390,6 +390,9 @@ Flags:
   -V, --version
   Print version number and exit.
 
+  -a, --attempts %v
+  Maximum number of attempts (negative for infinite).
+
   -b, --backoff %v
   Base for exponential backoff (duration).
 
@@ -408,21 +411,18 @@ Flags:
   -m, --max-delay %v
   Maximum allowed sum of constant delay and exponential backoff (duration).
 
-  -n, --attempts %v
-  Maximum number of attempts (negative for infinite).
-
   -t, --timeout %v
   Timeout for each attempt (duration; negative for no timeout).
 
   -v, --verbose
   Increase verbosity (up to %v times).
 `,
+		maxAttemptsDefault,
 		formatDuration(backoffDefault),
 		conditionDefault,
 		formatDuration(delayDefault),
 		jitterDefault,
 		formatDuration(maxDelayDefault),
-		maxAttemptsDefault,
 		formatDuration(timeoutDefault),
 		maxVerboseLevel,
 	)
@@ -478,6 +478,18 @@ func parseArgs() retryConfig {
 		}
 
 		switch arg {
+		case "-a", "--attempts", "-n", "--tries":
+			value := nextArg(arg)
+
+			var maxAttempts int
+			_, err := fmt.Sscanf(value, "%d", &maxAttempts)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "invalid maximum number of attempts: %v", value)
+				os.Exit(2)
+			}
+
+			config.MaxAttempts = maxAttempts
+
 		case "-b", "--backoff":
 			value := nextArg(arg)
 
@@ -523,18 +535,6 @@ func parseArgs() retryConfig {
 			}
 
 			config.FixedDelay.End = maxDelay
-
-		case "-n", "--attempts", "--tries":
-			value := nextArg(arg)
-
-			var maxAttempts int
-			_, err := fmt.Sscanf(value, "%d", &maxAttempts)
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "invalid maximum number of attempts: %v", value)
-				os.Exit(2)
-			}
-
-			config.MaxAttempts = maxAttempts
 
 		case "-t", "--timeout":
 			value := nextArg(arg)

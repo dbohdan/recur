@@ -20,7 +20,7 @@ go install github.com/dbohdan/recur@latest
 ## Usage
 
 ```none
-Usage: recur [-b <backoff>] [-c <condition>] [-d <delay>] [-f] [-j <jitter>] [-m <max-delay>] [-n <attempt>] [-t <timeout>] [-v] <command> [<arg> ...]
+Usage: recur [-a <attempts>] [-b <backoff>] [-c <condition>] [-d <delay>] [-f] [-j <jitter>] [-m <max-delay>] [-t <timeout>] [-v] <command> [<arg> ...]
 
 Retry a command with exponential backoff and jitter.
 
@@ -37,6 +37,9 @@ Flags:
 
   -V, --version
   Print version number and exit.
+
+  -a, --attempts 5
+  Maximum number of attempts (negative for infinite).
 
   -b, --backoff 0
   Base for exponential backoff (duration).
@@ -55,9 +58,6 @@ Flags:
 
   -m, --max-delay 1h
   Maximum allowed sum of constant delay and exponential backoff (duration).
-
-  -n, --attempts 5
-  Maximum number of attempts (negative for infinite).
 
   -t, --timeout -1s
   Timeout for each attempt (duration; negative for no timeout).

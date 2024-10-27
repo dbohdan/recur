@@ -95,7 +95,7 @@ func TestOptions(t *testing.T) {
 }
 
 func TestVerbose(t *testing.T) {
-	_, stderr, _ := runCommand("-v", "-n", "3", commandExit99)
+	_, stderr, _ := runCommand("-v", "-a", "3", commandExit99)
 
 	if count := len(regexp.MustCompile("command exited with code").FindAllString(stderr, -1)); count != 3 {
 		t.Errorf("Expected 3 instances of 'command exited with code', got %d", count)
@@ -107,7 +107,7 @@ func TestVerbose(t *testing.T) {
 }
 
 func TestVerboseCommandNotFound(t *testing.T) {
-	_, stderr, _ := runCommand("-v", "-n", "3", noSuchCommand)
+	_, stderr, _ := runCommand("-v", "-a", "3", noSuchCommand)
 
 	if count := len(regexp.MustCompile("command was not found").FindAllString(stderr, -1)); count != 3 {
 		t.Errorf("Expected 3 instances of 'command was not found', got %d", count)
