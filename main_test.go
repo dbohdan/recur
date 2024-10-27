@@ -94,6 +94,14 @@ func TestOptions(t *testing.T) {
 	}
 }
 
+func TestBackoffAndNegativeDelay(t *testing.T) {
+	_, stderr, _ := runCommand("-a", "2", "-b", "1.05s", "-d", "-1s", "-v", commandExit99)
+
+	if matched, _ := regexp.MatchString(`waiting \d{2}ms`, stderr); !matched {
+		t.Error(`Expected 'waiting \d{2}ms' in stderr`)
+	}
+}
+
 func TestVerbose(t *testing.T) {
 	_, stderr, _ := runCommand("-v", "-a", "3", commandExit99)
 
