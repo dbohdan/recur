@@ -513,6 +513,9 @@ func parseArgs() retryConfig {
 			}
 
 			config.FixedDelay.Start = delay
+			if config.FixedDelay.End < config.FixedDelay.Start {
+				config.FixedDelay.End = config.FixedDelay.Start
+			}
 
 		case "-f", "--forever":
 			config.MaxAttempts = -1

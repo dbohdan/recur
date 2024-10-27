@@ -24,7 +24,10 @@ go install github.com/dbohdan/recur@latest
 
 The "duration" arguments take [Go duration strings](https://pkg.go.dev/time#ParseDuration);
 for example, `0`, `100ms`, `2.5s`, `0.5m`, or `1h`.
-The `-j`/`--jitter` argument must be either one duration string or two joined with a comma, like `1s,2s`.
+The value of `-j`/`--jitter` must be either one duration string or two joined with a comma, like `1s,2s`.
+
+Setting the delay (`-d`/`--delay`) increases the maximum delay (`-m`/`--max-delay`) to that value when the maximum delay is shorter.
+Use `-m`/`--max-delay` after `-d`/`--delay` if you want a shorter maximum delay.
 
 recur exits with the last command's exit code unless the user overrides this in the condition.
 When the command is not found during the last attempt,
