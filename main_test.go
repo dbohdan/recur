@@ -87,7 +87,7 @@ func TestCommandNotFound(t *testing.T) {
 }
 
 func TestOptions(t *testing.T) {
-	_, _, err := runCommand("-b", "1s", "-d", "0", "--jitter", "0,0.1s", "-m", "0", "-n", "0", commandHello)
+	_, _, err := runCommand("-a", "0", "-b", "1s", "-d", "0", "--jitter", "0,0.1s", "-m", "0", commandHello)
 
 	if err != nil {
 		t.Errorf("Expected no error, got %v", err)
@@ -147,7 +147,7 @@ func TestConditionAttemptForever(t *testing.T) {
 }
 
 func TestConditionAttemptNegative(t *testing.T) {
-	stdout, _, _ := runCommand("--tries", "-1", "--condition", "attempt == 5", commandHello)
+	stdout, _, _ := runCommand("--attempts", "-1", "--condition", "attempt == 5", commandHello)
 
 	if count := len(regexp.MustCompile("hello").FindAllString(stdout, -1)); count != 5 {
 		t.Errorf("Expected 5 instances of 'hello', got %d", count)

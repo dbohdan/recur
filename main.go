@@ -478,7 +478,7 @@ func parseArgs() retryConfig {
 		}
 
 		switch arg {
-		case "-a", "--attempts", "-n", "--tries":
+		case "-a", "--attempts":
 			value := nextArg(arg)
 
 			var maxAttempts int
