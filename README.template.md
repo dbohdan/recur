@@ -68,7 +68,7 @@ For example, you can make recur exit with success when the command fails.
 ```shell
 recur --condition 'code != 0 and exit(0)' sh -c 'exit 1'
 # or
-recur --condition 'exit(0) if code != 0 else False' sh -c 'exit 1'
+recur --condition 'False if code == 0 else exit(0)' sh -c 'exit 1'
 ```
 
 In the following example we stop early and do not retry when the command's exit code indicates incorrect usage or a problem with the installation.
