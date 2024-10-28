@@ -37,6 +37,8 @@ import (
 	"time"
 
 	"github.com/alecthomas/repr"
+	tsize "github.com/kopoli/go-terminal-size"
+	"github.com/mitchellh/go-wordwrap"
 	"go.starlark.net/starlark"
 )
 
@@ -361,11 +363,22 @@ func retry(config retryConfig) (int, error) {
 	return cmdResult.ExitCode, fmt.Errorf("maximum %d attempts reached", config.MaxAttempts)
 }
 
+func wrapForTerm(s string) string {
+	size, err := tsize.GetSize()
+	if err != nil {
+		return s
+	}
+
+	return wordwrap.WrapString(s, uint(size.Width))
+}
+
 func usage(w io.Writer) {
 	fmt.Fprintf(
 		w,
-		`Usage: %s [-a <attempts>] [-b <backoff>] [-c <condition>] [-d <delay>] [-f] [-j <jitter>] [-m <max-delay>] [-t <timeout>] [-v] <command> [<arg> ...]
+		wrapForTerm(
+			`Usage: %s [-a <attempts>] [-b <backoff>] [-c <condition>] [-d <delay>] [-f] [-j <jitter>] [-m <max-delay>] [-t <timeout>] [-v] <command> [<arg> ...]
 `,
+		),
 		filepath.Base(os.Args[0]),
 	)
 }
@@ -374,7 +387,8 @@ func help() {
 	usage(os.Stdout)
 
 	fmt.Printf(
-		`
+		wrapForTerm(
+			`
 Retry a command with exponential backoff and jitter.
 
 Arguments:
@@ -418,6 +432,7 @@ Flags:
   -v, --verbose
   Increase verbosity (up to %v times).
 `,
+		),
 		maxAttemptsDefault,
 		formatDuration(backoffDefault),
 		conditionDefault,
