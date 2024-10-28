@@ -4,6 +4,7 @@ go 1.19
 
 require (
 	github.com/alecthomas/repr v0.4.0
+	github.com/mitchellh/go-wordwrap v1.0.1
 	go.starlark.net v0.0.0-20240925182052-1207426daebd
 )
 

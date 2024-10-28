@@ -20,7 +20,8 @@ go install github.com/dbohdan/recur@latest
 ## Usage
 
 ```none
-Usage: recur [-a <attempts>] [-b <backoff>] [-c <condition>] [-d <delay>] [-f] [-j <jitter>] [-m <max-delay>] [-t <timeout>] [-v] <command> [<arg> ...]
+Usage: recur [-a <attempts>] [-b <backoff>] [-c <condition>] [-d <delay>] [-f]
+[-j <jitter>] [-m <max-delay>] [-t <timeout>] [-v] <command> [<arg> ...]
 
 Retry a command with exponential backoff and jitter.
 

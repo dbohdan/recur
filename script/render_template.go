@@ -2,11 +2,13 @@ package main
 
 import (
 	"bytes"
-	"html/template"
 	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
+	"text/template"
+
+	"github.com/mitchellh/go-wordwrap"
 )
 
 func main() {
@@ -22,15 +24,21 @@ func main() {
 		log.Fatalf("Failed to run command: %v", err)
 	}
 
-	tmpl, err := template.New("template").Parse(string(templateData))
+	funcMap := template.FuncMap{
+		"wrap": func(width uint, s string) (string, error) {
+			return wordwrap.WrapString(s, width), nil
+		},
+	}
+
+	tmpl, err := template.New("template").Funcs(funcMap).Parse(string(templateData))
 	if err != nil {
 		log.Fatalf("Failed to parse template: %v", err)
 	}
 
 	data := struct {
-		Help template.HTML
+		Help string
 	}{
-		Help: template.HTML(cmdOutput.String()),
+		Help: cmdOutput.String(),
 	}
 
 	if err := tmpl.Execute(os.Stdout, data); err != nil {
