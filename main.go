@@ -32,6 +32,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -482,7 +483,7 @@ func parseArgs() retryConfig {
 			value := nextArg(arg)
 
 			var maxAttempts int
-			_, err := fmt.Sscanf(value, "%d", &maxAttempts)
+			maxAttempts, err := strconv.Atoi(value)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "invalid maximum number of attempts: %v", value)
 				os.Exit(2)

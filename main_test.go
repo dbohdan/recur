@@ -94,6 +94,14 @@ func TestOptions(t *testing.T) {
 	}
 }
 
+func TestAttemptsTrailingGarbageOptions(t *testing.T) {
+	_, _, err := runCommand("-a", "0abcdef", commandHello)
+
+	if exitErr, ok := err.(*exec.ExitError); !ok || exitErr.ExitCode() != 2 {
+		t.Errorf("Expected exit code 2, got %v", err)
+	}
+}
+
 func TestBackoffAndNegativeDelay(t *testing.T) {
 	_, stderr, _ := runCommand("-a", "2", "-b", "1.05s", "-d", "-1s", "-v", commandExit99)
 
