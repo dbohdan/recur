@@ -477,17 +477,19 @@ func parseArgs() retryConfig {
 
 	// Parse the command-line flags.
 	var i int
+
+	nextArg := func(flag string) string {
+		i++
+
+		if i >= len(os.Args) {
+			usageError("no value for flag '%s'", flag)
+		}
+
+		return os.Args[i]
+	}
+
 	for i = 1; i < len(os.Args); i++ {
 		arg := os.Args[i]
-		nextArg := func(flag string) string {
-			i++
-
-			if i >= len(os.Args) {
-				usageError("no value for flag '%s'", flag)
-			}
-
-			return os.Args[i]
-		}
 
 		if arg == "--" || !strings.HasPrefix(arg, "-") {
 			break
