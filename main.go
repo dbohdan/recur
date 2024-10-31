@@ -421,7 +421,7 @@ Flags:
   Infinite attempts.
 
   -j, --jitter "%v"
-  Additional random delay (maximum duration or 'min,max' duration).
+  Additional random delay (maximum duration or "min,max" duration).
 
   -m, --max-delay %v
   Maximum allowed sum of constant delay and exponential backoff (duration).
