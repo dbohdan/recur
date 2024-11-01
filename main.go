@@ -373,22 +373,19 @@ func wrapForTerm(s string) string {
 }
 
 func usage(w io.Writer) {
-	fmt.Fprintf(
-		w,
-		wrapForTerm(
-			`Usage: %s [-a <attempts>] [-b <backoff>] [-c <condition>] [-d <delay>] [-f] [-j <jitter>] [-m <max-delay>] [-t <timeout>] [-v] <command> [<arg> ...]
-`,
-		),
+	s := fmt.Sprintf(
+		`Usage: %s [-a <attempts>] [-b <backoff>] [-c <condition>] [-d <delay>] [-f] [-j <jitter>] [-m <max-delay>] [-t <timeout>] [-v] <command> [<arg> ...]`,
 		filepath.Base(os.Args[0]),
 	)
+
+	fmt.Fprintln(w, wrapForTerm(s))
 }
 
 func help() {
 	usage(os.Stdout)
 
-	fmt.Printf(
-		wrapForTerm(
-			`
+	s := fmt.Sprintf(
+		`
 Retry a command with exponential backoff and jitter.
 
 Arguments:
@@ -432,7 +429,6 @@ Flags:
   -v, --verbose
   Increase verbosity (up to %v times).
 `,
-		),
 		maxAttemptsDefault,
 		formatDuration(backoffDefault),
 		conditionDefault,
@@ -442,6 +438,8 @@ Flags:
 		formatDuration(timeoutDefault),
 		maxVerboseLevel,
 	)
+
+	fmt.Print(wrapForTerm(s))
 }
 
 func parseArgs() retryConfig {
