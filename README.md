@@ -27,44 +27,45 @@ Retry a command with exponential backoff and jitter.
 
 Arguments:
   <command>
-  Command to run.
+          Command to run.
 
   [<arg> ...]
-  Arguments to the command.
+          Arguments to the command.
 
 Flags:
   -h, --help
-  Print this help message and exit.
+          Print this help message and exit.
 
   -V, --version
-  Print version number and exit.
+          Print version number and exit.
 
   -a, --attempts 10
-  Maximum number of attempts (negative for infinite).
+          Maximum number of attempts (negative for infinite).
 
   -b, --backoff 0
-  Base for exponential backoff (duration).
+          Base for exponential backoff (duration).
 
-  -c, --condition "code == 0"
-  Success condition (Starlark expression).
+  -c, --condition 'code == 0'
+          Success condition (Starlark expression).
 
   -d, --delay 0
-  Constant delay (duration).
+          Constant delay (duration).
 
   -f, --forever
-  Infinite attempts.
+          Infinite attempts.
 
-  -j, --jitter "0,0"
-  Additional random delay (maximum duration or "min,max" duration).
+  -j, --jitter '0,0'
+          Additional random delay (maximum duration or 'min,max' duration).
 
   -m, --max-delay 1h
-  Maximum allowed sum of constant delay and exponential backoff (duration).
+          Maximum allowed sum of constant delay and exponential backoff
+(duration).
 
   -t, --timeout -1s
-  Timeout for each attempt (duration; negative for no timeout).
+          Timeout for each attempt (duration; negative for no timeout).
 
   -v, --verbose
-  Increase verbosity (up to 3 times).
+          Increase verbosity (up to 3 times).
 ```
 
 The "duration" arguments take [Go duration strings](https://pkg.go.dev/time#ParseDuration);

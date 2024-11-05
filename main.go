@@ -390,44 +390,44 @@ Retry a command with exponential backoff and jitter.
 
 Arguments:
   <command>
-  Command to run.
+          Command to run.
 
   [<arg> ...]
-  Arguments to the command.
+          Arguments to the command.
 
 Flags:
   -h, --help
-  Print this help message and exit.
+          Print this help message and exit.
 
   -V, --version
-  Print version number and exit.
+          Print version number and exit.
 
   -a, --attempts %v
-  Maximum number of attempts (negative for infinite).
+          Maximum number of attempts (negative for infinite).
 
   -b, --backoff %v
-  Base for exponential backoff (duration).
+          Base for exponential backoff (duration).
 
-  -c, --condition "%v"
-  Success condition (Starlark expression).
+  -c, --condition '%v'
+          Success condition (Starlark expression).
 
   -d, --delay %v
-  Constant delay (duration).
+          Constant delay (duration).
 
   -f, --forever
-  Infinite attempts.
+          Infinite attempts.
 
-  -j, --jitter "%v"
-  Additional random delay (maximum duration or "min,max" duration).
+  -j, --jitter '%v'
+          Additional random delay (maximum duration or 'min,max' duration).
 
   -m, --max-delay %v
-  Maximum allowed sum of constant delay and exponential backoff (duration).
+          Maximum allowed sum of constant delay and exponential backoff (duration).
 
   -t, --timeout %v
-  Timeout for each attempt (duration; negative for no timeout).
+          Timeout for each attempt (duration; negative for no timeout).
 
   -v, --verbose
-  Increase verbosity (up to %v times).
+          Increase verbosity (up to %v times).
 `,
 		maxAttemptsDefault,
 		formatDuration(backoffDefault),
