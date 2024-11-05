@@ -20,7 +20,8 @@ go install github.com/dbohdan/recur@latest
 ## Usage
 
 ```none
-{{ .Help | wrap 80 }}```
+{{ .Help | wrap 80 -}}
+```
 
 The "duration" arguments take [Go duration strings](https://pkg.go.dev/time#ParseDuration);
 for example, `0`, `100ms`, `2.5s`, `0.5m`, or `1h`.
