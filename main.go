@@ -451,7 +451,7 @@ func parseArgs() retryConfig {
 		Timeout:     timeoutDefault,
 	}
 
-	// Check early for special flags that override argument validation.
+	// Check early for special flags that override argument parsing.
 	for _, arg := range os.Args {
 		switch arg {
 		case "-h", "--help":
@@ -499,8 +499,7 @@ func parseArgs() retryConfig {
 			var maxAttempts int
 			maxAttempts, err := strconv.Atoi(value)
 			if err != nil {
-				fmt.Fprintf(os.Stderr, "invalid maximum number of attempts: %v", value)
-				os.Exit(2)
+				usageError("invalid maximum number of attempts: %v", value)
 			}
 
 			config.MaxAttempts = maxAttempts
@@ -523,8 +522,7 @@ func parseArgs() retryConfig {
 
 			delay, err := time.ParseDuration(value)
 			if err != nil {
-				fmt.Fprintf(os.Stderr, "invalid delay: %v", value)
-				os.Exit(2)
+				usageError("invalid delay: %v", value)
 			}
 
 			config.FixedDelay.Start = delay
@@ -548,8 +546,7 @@ func parseArgs() retryConfig {
 
 			maxDelay, err := time.ParseDuration(value)
 			if err != nil {
-				fmt.Fprintf(os.Stderr, "invalid maximum delay: %v", value)
-				os.Exit(2)
+				usageError("invalid maximum delay: %v", value)
 			}
 
 			config.FixedDelay.End = maxDelay
@@ -559,8 +556,7 @@ func parseArgs() retryConfig {
 
 			timeout, err := time.ParseDuration(value)
 			if err != nil {
-				fmt.Fprintf(os.Stderr, "invalid timeout: %v", value)
-				os.Exit(2)
+				usageError("invalid timeout: %v", value)
 			}
 
 			config.Timeout = timeout
