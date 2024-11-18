@@ -45,7 +45,6 @@ import (
 const (
 	exitCodeCommandNotFound = 255
 	exitCodeError           = -1
-	maxAllowedDelay         = 366 * 24 * 60 * 60
 	maxVerboseLevel         = 3
 	version                 = "0.9.0"
 )
