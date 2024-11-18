@@ -465,8 +465,8 @@ func parseArgs() retryConfig {
 	}
 
 	usageError := func(message string, badValue interface{}) {
-		fmt.Fprintf(os.Stderr, "Error: "+message+"\n", badValue)
 		usage(os.Stderr)
+		fmt.Fprintf(os.Stderr, "\nError: "+message+"\n", badValue)
 		os.Exit(2)
 	}
 
