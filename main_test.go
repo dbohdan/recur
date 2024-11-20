@@ -29,6 +29,7 @@ import (
 )
 
 var (
+	commandEnv    = "test/env"
 	commandExit99 = "test/exit99"
 	commandHello  = "test/hello"
 	commandRecur  = "./recur"
@@ -70,11 +71,19 @@ func TestEcho(t *testing.T) {
 	}
 }
 
+func TestEnv(t *testing.T) {
+	_, _, err := runCommand(commandEnv)
+
+	if _, ok := err.(*exec.ExitError); ok {
+		t.Errorf("Expected exit status 0, got %v", err)
+	}
+}
+
 func TestExitCode(t *testing.T) {
 	_, _, err := runCommand(commandExit99)
 
 	if exitErr, ok := err.(*exec.ExitError); !ok || exitErr.ExitCode() != 99 {
-		t.Errorf("Expected exit code 99, got %v", err)
+		t.Errorf("Expected exit status 99, got %v", err)
 	}
 }
 
@@ -82,7 +91,7 @@ func TestCommandNotFound(t *testing.T) {
 	_, _, err := runCommand(noSuchCommand)
 
 	if exitErr, ok := err.(*exec.ExitError); !ok || exitErr.ExitCode() != 255 {
-		t.Errorf("Expected exit code 255, got %v", err)
+		t.Errorf("Expected exit status 255, got %v", err)
 	}
 }
 
@@ -98,7 +107,7 @@ func TestAttemptsTrailingGarbageOptions(t *testing.T) {
 	_, _, err := runCommand("-a", "0abcdef", commandHello)
 
 	if exitErr, ok := err.(*exec.ExitError); !ok || exitErr.ExitCode() != 2 {
-		t.Errorf("Expected exit code 2, got %v", err)
+		t.Errorf("Expected exit status 2, got %v", err)
 	}
 }
 
@@ -182,7 +191,7 @@ func TestConditionExitArgNone(t *testing.T) {
 	_, _, err := runCommand("-c", "exit(None)", commandHello)
 
 	if exitErr, ok := err.(*exec.ExitError); !ok || exitErr.ExitCode() != 255 {
-		t.Errorf("Expected exit code 255, got %v", err)
+		t.Errorf("Expected exit status 255, got %v", err)
 	}
 }
 
@@ -194,7 +203,7 @@ func TestConditionExitArgTooLarge(t *testing.T) {
 	}
 
 	if exitErr, ok := err.(*exec.ExitError); !ok || exitErr.ExitCode() != 1 {
-		t.Errorf("Expected exit code 1, got %v", err)
+		t.Errorf("Expected exit status 1, got %v", err)
 	}
 }
 
@@ -206,7 +215,7 @@ func TestConditionExitArgWrongType(t *testing.T) {
 	}
 
 	if exitErr, ok := err.(*exec.ExitError); !ok || exitErr.ExitCode() != 1 {
-		t.Errorf("Expected exit code 1, got %v", err)
+		t.Errorf("Expected exit status 1, got %v", err)
 	}
 }
 
@@ -222,7 +231,7 @@ func TestConditionCommandNotFound(t *testing.T) {
 	_, _, err := runCommand("--condition", "command_found or exit(42)", noSuchCommand)
 
 	if exitErr, ok := err.(*exec.ExitError); !ok || exitErr.ExitCode() != 42 {
-		t.Errorf("Expected exit code 42, got %v", err)
+		t.Errorf("Expected exit status 42, got %v", err)
 	}
 }
 
@@ -230,7 +239,7 @@ func TestConditionCommandNotFoundCode(t *testing.T) {
 	_, _, err := runCommand("--condition", "code == None and exit(42)", noSuchCommand)
 
 	if exitErr, ok := err.(*exec.ExitError); !ok || exitErr.ExitCode() != 42 {
-		t.Errorf("Expected exit code 42, got %v", err)
+		t.Errorf("Expected exit status 42, got %v", err)
 	}
 }
 

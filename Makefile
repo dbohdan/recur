@@ -1,4 +1,4 @@
-TEST_BINARIES := test/exit99 test/hello test/sleep
+TEST_BINARIES := test/env test/exit99 test/hello test/sleep
 
 .PHONY: all
 all: README.md recur
@@ -20,6 +20,9 @@ release:
 .PHONY: test
 test: recur $(TEST_BINARIES)
 	go test
+
+test/env: test/env.go
+	go build -o $@ test/env.go
 
 test/exit99: test/exit99.go
 	go build -o $@ test/exit99.go

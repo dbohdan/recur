@@ -43,6 +43,8 @@ import (
 )
 
 const (
+	envVarAttempt           = "RECUR_ATTEMPT"
+	envVarMaxAttempts       = "RECUR_MAX_ATTEMPTS"
 	exitCodeCommandNotFound = 255
 	exitCodeError           = -1
 	maxVerboseLevel         = 3
@@ -213,7 +215,7 @@ func evaluateCondition(attemptInfo attempt, expr string) (bool, error) {
 	return bool(val.Truth()), nil
 }
 
-func executeCommand(command string, args []string, timeout time.Duration) commandResult {
+func executeCommand(command string, args []string, timeout time.Duration, envVars []string) commandResult {
 	if _, err := exec.LookPath(command); err != nil {
 		return commandResult{
 			Status:   statusNotFound,
@@ -232,6 +234,10 @@ func executeCommand(command string, args []string, timeout time.Duration) comman
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	cmd.Stdin = os.Stdin
+
+	if len(envVars) > 0 {
+		cmd.Env = append(os.Environ(), envVars...)
+	}
 
 	err := cmd.Run()
 	if err != nil {
@@ -312,7 +318,11 @@ func retry(config retryConfig) (int, error) {
 			startTime = attemptStart
 		}
 
-		cmdResult = executeCommand(config.Command, config.Args, config.Timeout)
+		envVars := []string{
+			fmt.Sprintf("%s=%d", envVarAttempt, attemptNum),
+			fmt.Sprintf("%s=%d", envVarMaxAttempts, config.MaxAttempts),
+		}
+		cmdResult = executeCommand(config.Command, config.Args, config.Timeout, envVars)
 
 		attemptEnd := time.Now()
 		attemptDuration := attemptEnd.Sub(attemptStart)

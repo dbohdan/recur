@@ -92,6 +92,10 @@ recur exits with the last command's exit code unless the user overrides this in 
 When the command is not found during the last attempt,
 recur exits with the code 255.
 
+recur sets the environment variable `RECUR_ATTEMPT` for the command it runs to the current attempt number.
+This way the command can access the attempt counter.
+recur also sets `RECUR_MAX_ATTEMPTS` to the value of `-a`/`--attempts`.
+
 ## Conditions
 
 recur supports a limited form of scripting.

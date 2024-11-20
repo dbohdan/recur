@@ -11,6 +11,7 @@ if (((Get-Variable 'IsWindows' -Scope 'Global' -ErrorAction 'Ignore') -and
 }
 $build = @{
     "recur" = "main.go"
+    "test/env" = "test/env.go"
     "test/exit99" = "test/exit99.go"
     "test/hello" = "test/hello.go"
     "test/sleep" = "test/sleep.go"
