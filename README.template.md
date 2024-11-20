@@ -11,6 +11,19 @@ It lets you write the success condition in Starlark.
 
 ## Installation
 
+### Prebuilt binaries
+
+Prebuilt binaries for
+FreeBSD (amd64),
+Linux (aarch64, riscv64, x86_64),
+macOS (arm64, x86_64),
+NetBSD (amd64),
+OpenBSD (amd64),
+and Windows (amd64, x86)
+are attached to [releases](https://github.com/dbohdan/recur/releases).
+
+### Go
+
 Install Go, then run the following command:
 
 ```shell
