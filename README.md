@@ -137,6 +137,9 @@ I wanted something like retry-cli but without the Node.js dependency.
 
 There are other similar tools:
 
+- [eb](https://github.com/rye/eb).
+  Written in Rust.
+  `cargo install eb`.
 - [retry (joshdk)](https://github.com/joshdk/retry).
   Written in Go.
   `go install github.com/joshdk/retry@master`.
