@@ -123,3 +123,6 @@ There are other similar tools:
 - [retry-cli](https://github.com/tirsen/retry-cli).
   Written in JavaScript for Node.js.
   `npx retry-cli`.
+- [SysBox](https://github.com/skx/sysbox) includes the command `splay`.
+  Written in Go.
+  `go install github.com/skx/sysbox@latest`.
