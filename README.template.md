@@ -51,6 +51,22 @@ recur sets the environment variable `RECUR_ATTEMPT` for the command it runs to t
 This way the command can access the attempt counter.
 recur also sets `RECUR_MAX_ATTEMPTS` to the value of `-a`/`--attempts`.
 
+The following command succeeds on the last attempt:
+
+```none
+$ recur sh -c 'echo "Attempt $RECUR_ATTEMPT of $RECUR_MAX_ATTEMPTS"; exit $((RECUR_MAX_ATTEMPTS - RECUR_ATTEMPT))'
+Attempt 1 of 10
+Attempt 2 of 10
+Attempt 3 of 10
+Attempt 4 of 10
+Attempt 5 of 10
+Attempt 6 of 10
+Attempt 7 of 10
+Attempt 8 of 10
+Attempt 9 of 10
+Attempt 10 of 10
+```
+
 ## Conditions
 
 recur supports a limited form of scripting.
