@@ -4,11 +4,6 @@
 It implements optional [exponential backoff](https://en.wikipedia.org/wiki/Exponential_backoff) with configurable [jitter](https://en.wikipedia.org/wiki/Thundering_herd_problem#Mitigation).
 It lets you write the success condition in Starlark.
 
-## Requirements
-
-- Go 1.19
-- POSIX Make for testing
-
 ## Installation
 
 ### Prebuilt binaries
@@ -29,6 +24,11 @@ Install Go, then run the following command:
 ```shell
 go install github.com/dbohdan/recur@latest
 ```
+
+## Build requirements
+
+- Go 1.19
+- POSIX Make for testing
 
 ## Usage
 
