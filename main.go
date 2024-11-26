@@ -498,7 +498,11 @@ func parseArgs() retryConfig {
 	for i = 1; i < len(os.Args); i++ {
 		arg := os.Args[i]
 
-		if arg == "--" || !strings.HasPrefix(arg, "-") {
+		if arg == "--" {
+			i++
+			break
+		}
+		if !strings.HasPrefix(arg, "-") {
 			break
 		}
 

@@ -103,6 +103,14 @@ func TestOptions(t *testing.T) {
 	}
 }
 
+func TestEndOfOptions(t *testing.T) {
+	_, _, err := runCommand("--", commandHello)
+
+	if err != nil {
+		t.Errorf("Expected no error, got %v", err)
+	}
+}
+
 func TestAttemptsTrailingGarbageOptions(t *testing.T) {
 	_, _, err := runCommand("-a", "0abcdef", commandHello)
 
