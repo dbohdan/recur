@@ -461,24 +461,6 @@ func parseArgs() retryConfig {
 		Timeout:     timeoutDefault,
 	}
 
-	// Check early for special options that override argument parsing.
-loop:
-	for _, arg := range os.Args[1:] {
-		if arg == "--" || !strings.HasPrefix(arg, "-") {
-			break loop
-		}
-
-		switch arg {
-		case "-h", "--help":
-			help()
-			os.Exit(0)
-
-		case "-V", "--version":
-			fmt.Printf("%s\n", version)
-			os.Exit(0)
-		}
-	}
-
 	usageError := func(message string, badValue interface{}) {
 		usage(os.Stderr)
 		fmt.Fprintf(os.Stderr, "\nError: "+message+"\n", badValue)
@@ -552,6 +534,10 @@ loop:
 		case "-f", "--forever":
 			config.MaxAttempts = -1
 
+		case "-h", "--help":
+			help()
+			os.Exit(0)
+
 		case "-j", "--jitter":
 			jitter, err := parseInterval(nextArg(arg))
 			if err != nil {
@@ -580,8 +566,13 @@ loop:
 
 			config.Timeout = timeout
 
+		// "-v" is handled in the default case.
 		case "--verbose":
 			config.Verbose++
+
+		case "-V", "--version":
+			fmt.Printf("%s\n", version)
+			os.Exit(0)
 
 		default:
 			if vShortFlags.MatchString(arg) {
