@@ -494,7 +494,7 @@ loop:
 		i++
 
 		if i >= len(os.Args) {
-			usageError("no value for option '%s'", flag)
+			usageError("no value for option: %s", flag)
 		}
 
 		return os.Args[i]
