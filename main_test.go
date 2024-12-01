@@ -166,8 +166,8 @@ func TestVerboseConfig(t *testing.T) {
 func TestVerboseTooMany(t *testing.T) {
 	_, stderr, _ := runCommand("-vvvvvv", "")
 
-	if matched, _ := regexp.MatchString("Error:.*?verbose flags", stderr); !matched {
-		t.Error("Expected 'Error:.*?verbose flags' in stderr")
+	if matched, _ := regexp.MatchString("Error:.*?verbose options", stderr); !matched {
+		t.Error("Expected 'Error:.*?verbose options' in stderr")
 	}
 }
 

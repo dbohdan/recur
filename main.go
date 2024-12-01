@@ -404,7 +404,7 @@ Arguments:
   [<arg> ...]
           Arguments to the command
 
-Flags:
+Options:
   -h, --help
           Print this help message and exit
 
@@ -461,7 +461,7 @@ func parseArgs() retryConfig {
 		Timeout:     timeoutDefault,
 	}
 
-	// Check early for special flags that override argument parsing.
+	// Check early for special options that override argument parsing.
 loop:
 	for _, arg := range os.Args[1:] {
 		if arg == "--" || !strings.HasPrefix(arg, "-") {
@@ -487,14 +487,14 @@ loop:
 
 	vShortFlags := regexp.MustCompile("^-v+$")
 
-	// Parse the command-line flags.
+	// Parse the command-line options.
 	var i int
 
 	nextArg := func(flag string) string {
 		i++
 
 		if i >= len(os.Args) {
-			usageError("no value for flag '%s'", flag)
+			usageError("no value for option '%s'", flag)
 		}
 
 		return os.Args[i]
@@ -589,12 +589,12 @@ loop:
 				continue
 			}
 
-			usageError("unknown flag: %v", arg)
+			usageError("unknown option: %v", arg)
 		}
 	}
 
 	if config.Verbose > maxVerboseLevel {
-		usageError("up to %d verbose flags is allowed", maxVerboseLevel)
+		usageError("up to %d verbose options is allowed", maxVerboseLevel)
 	}
 
 	if i >= len(os.Args) {
