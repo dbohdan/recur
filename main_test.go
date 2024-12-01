@@ -111,6 +111,14 @@ func TestEndOfOptions(t *testing.T) {
 	}
 }
 
+func TestEndOfOptionsHelp(t *testing.T) {
+	_, _, err := runCommand("--", commandExit99, "--help")
+
+	if exitErr, ok := err.(*exec.ExitError); !ok || exitErr.ExitCode() != 99 {
+		t.Errorf("Expected exit status 99, got %v", err)
+	}
+}
+
 func TestAttemptsTrailingGarbageOptions(t *testing.T) {
 	_, _, err := runCommand("-a", "0abcdef", commandHello)
 

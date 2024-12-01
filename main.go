@@ -383,7 +383,7 @@ func wrapForTerm(s string) string {
 
 func usage(w io.Writer) {
 	s := fmt.Sprintf(
-		`Usage: %s [-a <attempts>] [-b <backoff>] [-c <condition>] [-d <delay>] [-f] [-j <jitter>] [-m <max-delay>] [-t <timeout>] [-v] <command> [<arg> ...]`,
+		`Usage: %s [-a <attempts>] [-b <backoff>] [-c <condition>] [-d <delay>] [-f] [-j <jitter>] [-m <max-delay>] [-t <timeout>] [-v] [--] <command> [<arg> ...]`,
 		filepath.Base(os.Args[0]),
 	)
 
@@ -462,7 +462,12 @@ func parseArgs() retryConfig {
 	}
 
 	// Check early for special flags that override argument parsing.
-	for _, arg := range os.Args {
+loop:
+	for _, arg := range os.Args[1:] {
+		if arg == "--" || !strings.HasPrefix(arg, "-") {
+			break loop
+		}
+
 		switch arg {
 		case "-h", "--help":
 			help()
