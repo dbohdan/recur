@@ -383,7 +383,7 @@ func wrapForTerm(s string) string {
 
 func usage(w io.Writer) {
 	s := fmt.Sprintf(
-		`Usage: %s [-a <attempts>] [-b <backoff>] [-c <condition>] [-d <delay>] [-f] [-j <jitter>] [-m <max-delay>] [-t <timeout>] [-v] [--] <command> [<arg> ...]`,
+		`Usage: %s [-h] [-V] [-a <attempts>] [-b <backoff>] [-c <condition>] [-d <delay>] [-f] [-j <jitter>] [-m <max-delay>] [-t <timeout>] [-v] [--] <command> [<arg> ...]`,
 		filepath.Base(os.Args[0]),
 	)
 
