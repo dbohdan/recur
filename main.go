@@ -48,7 +48,7 @@ const (
 	exitCodeCommandNotFound = 255
 	exitCodeError           = -1
 	maxVerboseLevel         = 3
-	version                 = "2.0.0"
+	version                 = "2.0.1"
 )
 
 type attempt struct {
@@ -471,6 +471,8 @@ func parseArgs() retryConfig {
 
 	// Parse the command-line options.
 	var i int
+	printHelp := false
+	printVersion := false
 
 	nextArg := func(flag string) string {
 		i++
@@ -535,8 +537,7 @@ func parseArgs() retryConfig {
 			config.MaxAttempts = -1
 
 		case "-h", "--help":
-			help()
-			os.Exit(0)
+			printHelp = true
 
 		case "-j", "--jitter":
 			jitter, err := parseInterval(nextArg(arg))
@@ -571,8 +572,7 @@ func parseArgs() retryConfig {
 			config.Verbose++
 
 		case "-V", "--version":
-			fmt.Printf("%s\n", version)
-			os.Exit(0)
+			printVersion = true
 
 		default:
 			if vShortFlags.MatchString(arg) {
@@ -582,6 +582,16 @@ func parseArgs() retryConfig {
 
 			usageError("unknown option: %v", arg)
 		}
+	}
+
+	if printHelp {
+		help()
+		os.Exit(0)
+	}
+
+	if printVersion {
+		fmt.Printf("%s\n", version)
+		os.Exit(0)
 	}
 
 	if config.Verbose > maxVerboseLevel {
