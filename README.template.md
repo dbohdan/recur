@@ -22,13 +22,16 @@ are attached to [releases](https://github.com/dbohdan/recur/releases).
 Install Go, then run the following command:
 
 ```shell
-go install github.com/dbohdan/recur@latest
+go install github.com/dbohdan/recur/v2@latest
 ```
 
 ## Build requirements
 
 - Go 1.19
 - POSIX Make for testing
+
+Note that up-to-date code is in the directory [`v2/`](v2/)
+according to the [Go convention](https://go.dev/blog/v2-go-modules).
 
 ## Usage
 

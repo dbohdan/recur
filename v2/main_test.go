@@ -29,11 +29,11 @@ import (
 )
 
 var (
-	commandEnv    = "test/env"
-	commandExit99 = "test/exit99"
-	commandHello  = "test/hello"
+	commandEnv    = "../test/env"
+	commandExit99 = "../test/exit99"
+	commandHello  = "../test/hello"
 	commandRecur  = "./recur"
-	commandSleep  = "test/sleep"
+	commandSleep  = "../test/sleep"
 	noSuchCommand = "no-such-command-should-exist"
 )
 
@@ -60,6 +60,22 @@ func TestVersion(t *testing.T) {
 
 	if matched, _ := regexp.MatchString(`\d+\.\d+\.\d+`, stdout); !matched {
 		t.Error("Expected version format in stdout")
+	}
+}
+
+func TestUnknownOptBeforeHelp(t *testing.T) {
+	_, _, err := runCommand("--foo", "--help", commandExit99)
+
+	if exitErr, ok := err.(*exec.ExitError); !ok || exitErr.ExitCode() != 2 {
+		t.Errorf("Expected exit status 2, got %v", err)
+	}
+}
+
+func TestUnknownOptAfterHelp(t *testing.T) {
+	_, _, err := runCommand("--help", "--foo", commandExit99)
+
+	if exitErr, ok := err.(*exec.ExitError); !ok || exitErr.ExitCode() != 2 {
+		t.Errorf("Expected exit status 2, got %v", err)
 	}
 }
 
@@ -111,6 +127,14 @@ func TestEndOfOptions(t *testing.T) {
 	}
 }
 
+func TestEndOfOptionsHelp(t *testing.T) {
+	_, _, err := runCommand("--", commandExit99, "--help")
+
+	if exitErr, ok := err.(*exec.ExitError); !ok || exitErr.ExitCode() != 99 {
+		t.Errorf("Expected exit status 99, got %v", err)
+	}
+}
+
 func TestAttemptsTrailingGarbageOptions(t *testing.T) {
 	_, _, err := runCommand("-a", "0abcdef", commandHello)
 
@@ -158,8 +182,8 @@ func TestVerboseConfig(t *testing.T) {
 func TestVerboseTooMany(t *testing.T) {
 	_, stderr, _ := runCommand("-vvvvvv", "")
 
-	if matched, _ := regexp.MatchString("Error:.*?verbose flags", stderr); !matched {
-		t.Error("Expected 'Error:.*?verbose flags' in stderr")
+	if matched, _ := regexp.MatchString("Error:.*?verbose options", stderr); !matched {
+		t.Error("Expected 'Error:.*?verbose options' in stderr")
 	}
 }
 

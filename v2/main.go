@@ -48,7 +48,7 @@ const (
 	exitCodeCommandNotFound = 255
 	exitCodeError           = -1
 	maxVerboseLevel         = 3
-	version                 = "1.1.1"
+	version                 = "2.0.2"
 )
 
 type attempt struct {
@@ -383,7 +383,7 @@ func wrapForTerm(s string) string {
 
 func usage(w io.Writer) {
 	s := fmt.Sprintf(
-		`Usage: %s [-a <attempts>] [-b <backoff>] [-c <condition>] [-d <delay>] [-f] [-j <jitter>] [-m <max-delay>] [-t <timeout>] [-v] <command> [<arg> ...]`,
+		`Usage: %s [-h] [-V] [-a <attempts>] [-b <backoff>] [-c <condition>] [-d <delay>] [-f] [-j <jitter>] [-m <max-delay>] [-t <timeout>] [-v] [--] <command> [<arg> ...]`,
 		filepath.Base(os.Args[0]),
 	)
 
@@ -404,7 +404,7 @@ Arguments:
   [<arg> ...]
           Arguments to the command
 
-Flags:
+Options:
   -h, --help
           Print this help message and exit
 
@@ -461,19 +461,6 @@ func parseArgs() retryConfig {
 		Timeout:     timeoutDefault,
 	}
 
-	// Check early for special flags that override argument parsing.
-	for _, arg := range os.Args {
-		switch arg {
-		case "-h", "--help":
-			help()
-			os.Exit(0)
-
-		case "-V", "--version":
-			fmt.Printf("%s\n", version)
-			os.Exit(0)
-		}
-	}
-
 	usageError := func(message string, badValue interface{}) {
 		usage(os.Stderr)
 		fmt.Fprintf(os.Stderr, "\nError: "+message+"\n", badValue)
@@ -482,14 +469,16 @@ func parseArgs() retryConfig {
 
 	vShortFlags := regexp.MustCompile("^-v+$")
 
-	// Parse the command-line flags.
+	// Parse the command-line options.
 	var i int
+	printHelp := false
+	printVersion := false
 
 	nextArg := func(flag string) string {
 		i++
 
 		if i >= len(os.Args) {
-			usageError("no value for flag '%s'", flag)
+			usageError("no value for option: %s", flag)
 		}
 
 		return os.Args[i]
@@ -547,6 +536,9 @@ func parseArgs() retryConfig {
 		case "-f", "--forever":
 			config.MaxAttempts = -1
 
+		case "-h", "--help":
+			printHelp = true
+
 		case "-j", "--jitter":
 			jitter, err := parseInterval(nextArg(arg))
 			if err != nil {
@@ -575,8 +567,12 @@ func parseArgs() retryConfig {
 
 			config.Timeout = timeout
 
+		// "-v" is handled in the default case.
 		case "--verbose":
 			config.Verbose++
+
+		case "-V", "--version":
+			printVersion = true
 
 		default:
 			if vShortFlags.MatchString(arg) {
@@ -584,12 +580,22 @@ func parseArgs() retryConfig {
 				continue
 			}
 
-			usageError("unknown flag: %v", arg)
+			usageError("unknown option: %v", arg)
 		}
 	}
 
+	if printHelp {
+		help()
+		os.Exit(0)
+	}
+
+	if printVersion {
+		fmt.Printf("%s\n", version)
+		os.Exit(0)
+	}
+
 	if config.Verbose > maxVerboseLevel {
-		usageError("up to %d verbose flags is allowed", maxVerboseLevel)
+		usageError("up to %d verbose options is allowed", maxVerboseLevel)
 	}
 
 	if i >= len(os.Args) {

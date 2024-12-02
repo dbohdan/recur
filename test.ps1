@@ -3,6 +3,7 @@ $ErrorActionPreference = "Stop"
 
 $env:CGO_ENABLED = "0"
 
+$subdir = "v2"
 $extension = ""
 if (((Get-Variable 'IsWindows' -Scope 'Global' -ErrorAction 'Ignore') -and
      $IsWindows) -or
@@ -10,7 +11,7 @@ if (((Get-Variable 'IsWindows' -Scope 'Global' -ErrorAction 'Ignore') -and
     $extension = ".exe"
 }
 $build = @{
-    "recur" = "main.go"
+    "${subdir}/recur" = "${subdir}/main.go"
     "test/env" = "test/env.go"
     "test/exit99" = "test/exit99.go"
     "test/hello" = "test/hello.go"
@@ -25,4 +26,5 @@ foreach ($dest in $build.Keys) {
     go build -o $executable $source
 }
 
+cd $subdir
 go test

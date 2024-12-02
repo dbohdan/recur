@@ -1,25 +1,27 @@
+SUBDIR := v2
 TEST_BINARIES := test/env test/exit99 test/hello test/sleep
 
 .PHONY: all
-all: README.md recur
+all: README.md $(SUBDIR)/recur
 
 .PHONY: clean
 clean:
-	-rm README.md recur $(TEST_BINARIES)
+	-rm README.md $(SUBDIR)/recur $(TEST_BINARIES)
 
-README.md: README.template.md recur
-	go run script/render_template.go < README.template.md > $@
+README.md: README.template.md $(SUBDIR)/recur
+	cd $(SUBDIR) && go run ../script/render_template.go < ../README.template.md > ../$@
 
-recur: main.go
-	CGO_ENABLED=0 go build
+$(SUBDIR)/recur: $(SUBDIR)/main.go
+	CGO_ENABLED=0 go build -o $@ $(SUBDIR)/main.go
 
 .PHONY: release
 release:
-	go run script/release.go
+	mkdir -p dist/
+	cd $(SUBDIR) && go run ../script/release.go && mv dist/* ../dist/ && rmdir dist/
 
 .PHONY: test
-test: recur $(TEST_BINARIES)
-	go test
+test: $(SUBDIR)/recur $(TEST_BINARIES)
+	cd $(SUBDIR) && go test
 
 test/env: test/env.go
 	go build -o $@ test/env.go
