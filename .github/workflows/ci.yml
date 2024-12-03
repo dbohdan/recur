@@ -1,9 +1,16 @@
 name: CI
+
 on: [push, pull_request]
+
+env:
+  GO_VERSION: '1.19'
+  TASK_VERSION: 'v3.28'
+
 jobs:
   bsd:
     runs-on: ${{ matrix.os.host }}
     strategy:
+      fail-fast: false
       matrix:
         os:
           - name: freebsd
@@ -32,8 +39,26 @@ jobs:
           version: ${{ matrix.os.version }}
           shell: bash
           run: |
-            sudo .github/workflows/install-deps.sh
-            make test
+            case "$(uname)" in
+              FreeBSD)
+                sudo pkg install -y go
+                ;;
+              NetBSD)
+                sudo pkgin -y install go
+
+                for bin in /usr/pkg/bin/go1*; do
+                  src=$bin
+                done
+                sudo ln -s "$src" /usr/pkg/bin/go
+                ;;
+              OpenBSD)
+                sudo pkg_add -I go
+                ;;
+            esac
+            PATH=$(go env GOPATH)/bin:$PATH
+
+            go install 'github.com/go-task/task/v3/cmd/task@${{ env.TASK_VERSION }}'
+            task
 
   linux:
     runs-on: ubuntu-latest
@@ -41,13 +66,18 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v4
 
-    - name: Install dependencies
-      run: |
-        sudo .github/workflows/install-deps.sh
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: ${{ env.GO_VERSION }}
 
-    - name: Test
+    - name: Install Task
       run: |
-        make test
+        go install github.com/go-task/task/v3/cmd/task@"$TASK_VERSION"
+
+    - name: Build and test
+      run: |
+        task
 
   mac:
     runs-on: macos-latest
@@ -55,13 +85,18 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v4
 
-    - name: Install dependencies
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: ${{ env.GO_VERSION }}
+
+    - name: Install Task
       run: |
-        .github/workflows/install-deps.sh
+        go install github.com/go-task/task/v3/cmd/task@"$TASK_VERSION"
 
     - name: Build and test
       run: |
-        make test
+        task
 
   windows:
     runs-on: windows-latest
@@ -72,9 +107,18 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v4
 
-    - name: Test
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: ${{ env.GO_VERSION }}
+
+    - name: Install Task
       run: |
-        .\test.ps1
+        go install github.com/go-task/task/v3/cmd/task@$env:TASK_VERSION
+
+    - name: Build and test
+      run: |
+        task
 
     - name: Upload Windows binary
       uses: actions/upload-artifact@v4

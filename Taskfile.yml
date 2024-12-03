@@ -1,0 +1,144 @@
+version: '3'
+
+vars:
+  dist_dir: dist/
+  ext: '{{if eq OS "windows"}}.exe{{end}}'
+  subdir: v2
+  test_binaries: |
+    test/env
+    test/exit99
+    test/hello
+    test/sleep
+
+env:
+  CGO_ENABLED: 0
+
+tasks:
+  default:
+    deps:
+      - all
+
+  all:
+    desc: 'Build and test everything'
+    deps:
+      - build
+      - test
+
+  build:
+    desc: 'Build all components'
+    deps:
+      - build_readme
+      - build_binaries
+
+  build_binaries:
+    desc: 'Build all necessary binaries'
+    deps:
+      - build_recur
+      - build_test_binaries
+
+  build_binary:
+    desc: 'Build a single Go binary'
+    internal: true
+    cmds:
+      - go build -o {{.out | shellQuote}}{{.ext}} {{.src | shellQuote}}
+
+  build_readme:
+    desc: 'Generate README.md from template'
+    deps:
+      - build_recur
+    dir: '{{.subdir}}'
+    cmds:
+      - go run ../script/render_template.go < ../README.template.md > ../README.md
+    status:
+      - README.template.md
+      - '{{.subdir}}/main.go'
+    generates:
+      - README.md
+
+  build_recur:
+    desc: 'Build the recur binary'
+    cmds:
+      - task: build_binary
+        vars:
+          out: '{{.subdir | shellQuote}}/recur'
+          src: ./{{.subdir | shellQuote}}/main.go
+    sources:
+      - '{{.subdir}}/main.go'
+    generates:
+      - '{{.subdir}}/recur'
+
+  build_test_binaries:
+    desc: 'Build all test binaries'
+    deps:
+      - build_test_env
+      - build_test_exit99
+      - build_test_hello
+      - build_test_sleep
+
+  build_test_env:
+    cmds:
+      - task: build_binary
+        vars:
+          src: test/env.go
+          out: test/env
+    sources:
+      - test/env.go
+    generates:
+      - test/env
+
+  build_test_exit99:
+    cmds:
+      - task: build_binary
+        vars:
+          src: test/exit99.go
+          out: test/exit99
+    sources:
+      - test/exit99.go
+    generates:
+      - test/exit99
+
+  build_test_hello:
+    cmds:
+      - task: build_binary
+        vars:
+          src: test/hello.go
+          out: test/hello
+    sources:
+      - test/hello.go
+    generates:
+      - test/hello
+
+  build_test_sleep:
+    cmds:
+      - task: build_binary
+        vars:
+          src: test/sleep.go
+          out: test/sleep
+    sources:
+      - test/sleep.go
+    generates:
+      - test/sleep
+
+  clean:
+    desc: 'Clean up binaries and generated files'
+    cmds:
+      - rm -f README.md
+      - rm -f {{.subdir | shellQuote}}/recur
+      - rm -f {{range .test_binaries | splitLines }}{{. | shellQuote}} {{end}}
+
+  release:
+    desc: 'Prepare a release'
+    dir: '{{.subdir}}'
+    cmds:
+      - go run ../script/release.go
+      - mkdir -p ../{{.dist_dir | shellQuote}}
+      - mv dist/* ../{{.dist_dir | shellQuote}}
+      - rmdir dist/
+
+  test:
+    desc: 'Run tests'
+    deps:
+      - build_binaries
+    dir: '{{.subdir}}'
+    cmds:
+      - go test

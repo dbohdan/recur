@@ -28,7 +28,7 @@ go install github.com/dbohdan/recur/v2@latest
 ## Build requirements
 
 - Go 1.19
-- POSIX Make for testing
+- [Task](https://taskfile.dev/) (go-task) 3.28
 
 Note that up-to-date code is in the directory [`v2/`](v2/)
 according to the [Go convention](https://go.dev/blog/v2-go-modules).
