@@ -69,54 +69,23 @@ tasks:
 
   build_test_binaries:
     desc: 'Build all test binaries'
-    deps:
-      - build_test_env
-      - build_test_exit99
-      - build_test_hello
-      - build_test_sleep
-
-  build_test_env:
     cmds:
       - task: build_binary
         vars:
-          src: test/env.go
-          out: test/env
+          src: '{{.test_binary}}.go'
+          out: '{{.test_binary}}'
+        for:
+          var: test_binaries
+          as: test_binary
     sources:
       - test/env.go
-    generates:
-      - test/env
-
-  build_test_exit99:
-    cmds:
-      - task: build_binary
-        vars:
-          src: test/exit99.go
-          out: test/exit99
-    sources:
       - test/exit99.go
-    generates:
-      - test/exit99
-
-  build_test_hello:
-    cmds:
-      - task: build_binary
-        vars:
-          src: test/hello.go
-          out: test/hello
-    sources:
       - test/hello.go
-    generates:
-      - test/hello
-
-  build_test_sleep:
-    cmds:
-      - task: build_binary
-        vars:
-          src: test/sleep.go
-          out: test/sleep
-    sources:
       - test/sleep.go
     generates:
+      - test/env
+      - test/exit99
+      - test/hello
       - test/sleep
 
   clean:
@@ -124,7 +93,10 @@ tasks:
     cmds:
       - rm -f README.md
       - rm -f {{.subdir | shellQuote}}/recur
-      - rm -f {{range .test_binaries | splitLines }}{{. | shellQuote}} {{end}}
+      - cmd: rm -f {{.test_binary | shellQuote}}
+        for:
+          var: test_binaries
+          as: test_binary
 
   release:
     desc: 'Prepare a release'
