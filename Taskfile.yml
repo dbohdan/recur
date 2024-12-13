@@ -100,9 +100,11 @@ tasks:
 
   release:
     desc: 'Prepare a release'
+    deps:
+      - build_binaries
     dir: '{{.subdir}}'
     cmds:
-      - go run ../script/release.go
+      - VERSION=$(./recur{{.ext}} --version) go run ../script/release.go
       - mkdir -p ../{{.dist_dir | shellQuote}}
       - mv dist/* ../{{.dist_dir | shellQuote}}
       - rmdir dist/
