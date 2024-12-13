@@ -65,7 +65,7 @@ tasks:
     sources:
       - '{{.subdir}}/main.go'
     generates:
-      - '{{.subdir}}/recur'
+      - '{{.subdir}}/recur{{.ext}}'
 
   build_test_binaries:
     desc: 'Build all test binaries'
@@ -83,17 +83,17 @@ tasks:
       - test/hello.go
       - test/sleep.go
     generates:
-      - test/env
-      - test/exit99
-      - test/hello
-      - test/sleep
+      - test/env{{.ext}}
+      - test/exit99{{.ext}}
+      - test/hello{{.ext}}
+      - test/sleep{{.ext}}
 
   clean:
     desc: 'Clean up binaries and generated files'
     cmds:
       - rm -f README.md
-      - rm -f {{.subdir | shellQuote}}/recur
-      - cmd: rm -f {{.test_binary | shellQuote}}
+      - rm -f {{.subdir | shellQuote}}/recur{{.ext}}
+      - cmd: rm -f {{.test_binary | shellQuote}}{{.ext}}
         for:
           var: test_binaries
           as: test_binary
