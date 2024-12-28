@@ -102,9 +102,6 @@ tasks:
       - build_binaries
     cmds:
       - VERSION=$(./recur{{.ext}} --version) go run script/release.go
-      - mkdir -p {{.dist_dir | shellQuote}}
-      - mv dist/* {{.dist_dir | shellQuote}}
-      - rmdir dist/
 
   test:
     desc: 'Run tests'
