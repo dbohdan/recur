@@ -3,7 +3,6 @@ version: '3'
 vars:
   dist_dir: dist/
   ext: '{{if eq OS "windows"}}.exe{{end}}'
-  subdir: v2
   test_binaries: |
     test/env
     test/exit99
@@ -46,12 +45,11 @@ tasks:
     desc: 'Generate README.md from template'
     deps:
       - build_recur
-    dir: '{{.subdir}}'
     cmds:
-      - go run ../script/render_template.go < ../README.template.md > ../README.md
+      - go run script/render_template.go < README.template.md > README.md
     status:
       - README.template.md
-      - '{{.subdir}}/main.go'
+      - main.go
     generates:
       - README.md
 
@@ -60,12 +58,12 @@ tasks:
     cmds:
       - task: build_binary
         vars:
-          out: '{{.subdir | shellQuote}}/recur'
-          src: ./{{.subdir | shellQuote}}/main.go
+          out: recur
+          src: main.go
     sources:
-      - '{{.subdir}}/main.go'
+      - main.go
     generates:
-      - '{{.subdir}}/recur{{.ext}}'
+      - recur{{.ext}}
 
   build_test_binaries:
     desc: 'Build all test binaries'
@@ -92,7 +90,7 @@ tasks:
     desc: 'Clean up binaries and generated files'
     cmds:
       - rm -f README.md
-      - rm -f {{.subdir | shellQuote}}/recur{{.ext}}
+      - rm -f recur{{.ext}}
       - cmd: rm -f {{.test_binary | shellQuote}}{{.ext}}
         for:
           var: test_binaries
@@ -102,17 +100,15 @@ tasks:
     desc: 'Prepare a release'
     deps:
       - build_binaries
-    dir: '{{.subdir}}'
     cmds:
-      - VERSION=$(./recur{{.ext}} --version) go run ../script/release.go
-      - mkdir -p ../{{.dist_dir | shellQuote}}
-      - mv dist/* ../{{.dist_dir | shellQuote}}
+      - VERSION=$(./recur{{.ext}} --version) go run script/release.go
+      - mkdir -p {{.dist_dir | shellQuote}}
+      - mv dist/* {{.dist_dir | shellQuote}}
       - rmdir dist/
 
   test:
     desc: 'Run tests'
     deps:
       - build_binaries
-    dir: '{{.subdir}}'
     cmds:
       - go test

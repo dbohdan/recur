@@ -1,4 +1,4 @@
-module dbohdan.com/recur
+module dbohdan.com/recur/v2
 
 go 1.19
 

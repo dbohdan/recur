@@ -30,9 +30,6 @@ go install dbohdan.com/recur/v2@latest
 - Go 1.19
 - [Task](https://taskfile.dev/) (go-task) 3.28
 
-Note that up-to-date code is in the directory [`v2/`](v2/)
-according to the [Go convention](https://go.dev/blog/v2-go-modules).
-
 ## Usage
 
 ```none
