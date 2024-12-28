@@ -22,7 +22,7 @@ are attached to [releases](https://github.com/dbohdan/recur/releases).
 Install Go, then run the following command:
 
 ```shell
-go install github.com/dbohdan/recur/v2@latest
+go install dbohdan.com/recur/v2@latest
 ```
 
 ## Build requirements

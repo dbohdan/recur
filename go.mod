@@ -1,4 +1,4 @@
-module github.com/dbohdan/recur
+module dbohdan.com/recur
 
 go 1.19
 
