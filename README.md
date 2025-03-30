@@ -14,7 +14,7 @@ Linux (aarch64, riscv64, x86_64),
 macOS (arm64, x86_64),
 NetBSD (amd64),
 OpenBSD (amd64),
-and Windows (amd64, x86)
+and Windows (amd64, arm64, x86)
 are attached to [releases](https://github.com/dbohdan/recur/releases).
 
 ### Go
