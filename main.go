@@ -308,7 +308,7 @@ func retry(config retryConfig) (int, error) {
 		delay := delayBeforeAttempt(attemptNum, config)
 		if delay > 0 {
 			if config.Verbose >= 1 {
-				log.Printf("waiting %s before attempt %d", formatDuration(delay), attemptNum)
+				log.Printf("waiting %s after attempt %d", formatDuration(delay), attemptNum-1)
 			}
 			time.Sleep(delay)
 		}
