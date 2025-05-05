@@ -94,12 +94,14 @@ You can use the following variables in the condition expression:
 - `time`: `float` — the time the most recent attempt took, in seconds.
 - `total_time`: `float` — the time between the start of the first attempt and the end of the most recent, again in seconds.
 
-recur defines one custom function:
+recur defines two custom functions:
 
 - `exit(code: int | None) -> None` — exit with the exit code.
   If `code` is `None`, exit with the exit code for a missing command (255).
+- `inspect(value: Any) -> Any` — log and return `value`.
+  This is useful for debugging.
 
-This function allows you to override the default behavior of returning the last command's exit code.
+The `exit` function allows you to override the default behavior of returning the last command's exit code.
 For example, you can make recur exit with success when the command fails.
 
 ```shell

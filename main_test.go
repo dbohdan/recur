@@ -251,6 +251,18 @@ func TestConditionExitArgWrongType(t *testing.T) {
 	}
 }
 
+func TestConditionInspect(t *testing.T) {
+	_, stderr, err := runCommand("--condition", "inspect(code) == 99 and exit(0)", commandExit99)
+
+	if err != nil {
+		t.Errorf("Expected no error, got %v", err)
+	}
+
+	if matched, _ := regexp.MatchString("inspect: 99", stderr); !matched {
+		t.Error("Expected 'inspect: 99' in stderr")
+	}
+}
+
 func TestConditionTimeAndTotalTime(t *testing.T) {
 	stdout, _, _ := runCommand("--condition", "total_time > time", commandSleep, "0.1")
 

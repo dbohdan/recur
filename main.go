@@ -146,6 +146,17 @@ func StarlarkExit(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tu
 	return nil, fmt.Errorf("exit code wasn't 'int' or 'None'")
 }
 
+func StarlarkInspect(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+	var value starlark.Value
+	if err := starlark.UnpackPositionalArgs(b.Name(), args, kwargs, 1, &value); err != nil {
+		return nil, err
+	}
+
+	log.Printf("inspect: %v\n", value)
+
+	return value, nil
+}
+
 func parseInterval(s string) (interval, error) {
 	var start, end time.Duration
 	var err error
@@ -188,7 +199,8 @@ func evaluateCondition(attemptInfo attempt, expr string) (bool, error) {
 	}
 
 	globals := starlark.StringDict{
-		"exit": starlark.NewBuiltin("exit", StarlarkExit),
+		"exit":    starlark.NewBuiltin("exit", StarlarkExit),
+		"inspect": starlark.NewBuiltin("inspect", StarlarkInspect),
 
 		"attempt":       starlark.MakeInt(attemptInfo.Number),
 		"code":          code,
