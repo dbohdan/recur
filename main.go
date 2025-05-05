@@ -1,4 +1,4 @@
-// Copyright (c) 2023-2024 D. Bohdan
+// Copyright (c) 2023-2025 D. Bohdan
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -48,7 +48,7 @@ const (
 	exitCodeCommandNotFound = 255
 	exitCodeError           = -1
 	maxVerboseLevel         = 3
-	version                 = "2.0.4"
+	version                 = "2.0.5"
 )
 
 type attempt struct {
@@ -194,8 +194,8 @@ func evaluateCondition(attemptInfo attempt, expr string) (bool, error) {
 		"code":          code,
 		"command_found": starlark.Bool(attemptInfo.CommandFound),
 		"max_attempts":  starlark.MakeInt(attemptInfo.MaxAttempts),
-		"time":          starlark.Float(attemptInfo.Duration),
-		"total_time":    starlark.Float(attemptInfo.TotalTime),
+		"time":          starlark.Float(float64(attemptInfo.Duration) / float64(time.Second)),
+		"total_time":    starlark.Float(float64(attemptInfo.TotalTime) / float64(time.Second)),
 	}
 
 	val, err := starlark.Eval(thread, "", expr, globals)

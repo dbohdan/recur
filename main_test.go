@@ -1,4 +1,4 @@
-// Copyright (c) 2023-2024 D. Bohdan
+// Copyright (c) 2023-2025 D. Bohdan
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -256,6 +256,14 @@ func TestConditionTimeAndTotalTime(t *testing.T) {
 
 	if count := len(regexp.MustCompile("T").FindAllString(stdout, -1)); count != 2 {
 		t.Errorf("Expected 2 instances of 'T', got %d", count)
+	}
+}
+
+func TestConditionTotalTime(t *testing.T) {
+	stdout, _, _ := runCommand("--condition", "total_time > 0.3", commandSleep, "0.1")
+
+	if count := len(regexp.MustCompile("T").FindAllString(stdout, -1)); count != 3 {
+		t.Errorf("Expected 3 instances of 'T', got %d", count)
 	}
 }
 
