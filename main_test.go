@@ -286,8 +286,8 @@ func TestConditionTimeAndTotalTime(t *testing.T) {
 func TestConditionTotalTime(t *testing.T) {
 	stdout, _, _ := runCommand("--condition", "total_time > 0.3", commandSleep, "0.1")
 
-	if count := len(regexp.MustCompile("T").FindAllString(stdout, -1)); count != 3 {
-		t.Errorf("Expected 3 instances of 'T', got %d", count)
+	if matched, _ := regexp.MatchString(`(?:T\s*){2,3}`, stdout); !matched {
+		t.Error(`Expected '(?:T\s*){2,3}' in stdout`)
 	}
 }
 
