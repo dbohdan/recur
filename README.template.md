@@ -98,7 +98,7 @@ recur defines two custom functions:
 
 - `exit(code: int | None) -> None` — exit with the exit code.
   If `code` is `None`, exit with the exit code for a missing command (255).
-- `inspect(value: Any) -> Any` — log and return `value`.
+- `inspect(value: Any, *, prefix: str = "") -> Any` — log `value` prefixed by `prefix` and return `value`.
   This is useful for debugging.
 
 The `exit` function allows you to override the default behavior of returning the last command's exit code.

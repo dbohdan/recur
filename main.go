@@ -147,12 +147,19 @@ func StarlarkExit(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tu
 }
 
 func StarlarkInspect(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+	var prefix starlark.String
 	var value starlark.Value
-	if err := starlark.UnpackPositionalArgs(b.Name(), args, kwargs, 1, &value); err != nil {
+
+	if err := starlark.UnpackArgs(b.Name(), args, kwargs, "value", &value, "prefix?", &prefix); err != nil {
 		return nil, err
 	}
 
-	log.Printf("inspect: %v\n", value)
+	prefixStr := ""
+	if prefix.Len() > 0 {
+		prefixStr = prefix.GoString()
+	}
+
+	log.Printf("inspect: %s%v\n", prefixStr, value)
 
 	return value, nil
 }
