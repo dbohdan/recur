@@ -34,8 +34,8 @@ go install dbohdan.com/recur/v2@latest
 
 ```none
 Usage: recur [-h] [-V] [-a <attempts>] [-b <backoff>] [-c <condition>] [-d
-<delay>] [-f] [-j <jitter>] [-m <max-delay>] [-t <timeout>] [-v] [--] <command>
-[<arg> ...]
+<delay>] [-f] [-j <jitter>] [-m <max-delay>] [-r <reset-time>] [-t <timeout>]
+[-v] [--] <command> [<arg> ...]
 
 Retry a command with exponential backoff and jitter.
 
@@ -75,6 +75,10 @@ Options:
           Maximum allowed sum of constant delay and exponential backoff
 (duration)
 
+  -r, --reset -1s
+          Minimum attempt time that resets exponential backoff (duration;
+negative for no reset)
+
   -t, --timeout -1s
           Timeout for each attempt (duration; negative for no timeout)
 
@@ -89,13 +93,22 @@ The value of `-j`/`--jitter` must be either one duration string or two joined wi
 Setting the delay (`-d`/`--delay`) increases the maximum delay (`-m`/`--max-delay`) to that value when the maximum delay is shorter.
 Use `-m`/`--max-delay` after `-d`/`--delay` if you want a shorter maximum delay.
 
+The following recur options run the command `foo --config bar.cfg` indefinitely.
+Every time `foo` exits, there is a delay that grows exponentially from two seconds to a minute.
+The delay resets back to two seconds if the command runs for at least five minutes.
+
+```shell
+recur --backoff 2s --condition False --forever --max-delay 1m --reset 5m foo --config bar.cfg
+```
+
 recur exits with the last command's exit code unless the user overrides this in the condition.
 When the command is not found during the last attempt,
 recur exits with the code 255.
 
 recur sets the environment variable `RECUR_ATTEMPT` for the command it runs to the current attempt number.
 This way the command can access the attempt counter.
-recur also sets `RECUR_MAX_ATTEMPTS` to the value of `-a`/`--attempts`.
+recur also sets `RECUR_MAX_ATTEMPTS` to the value of `-a`/`--attempts`
+and `RECUR_ATTEMPT_SINCE_RESET` to the attempt number since exponential backoff was reset.
 
 The following command succeeds on the last attempt:
 
@@ -132,6 +145,7 @@ You can use the following variables in the condition expression:
 
 - `attempt`: `int` — the number of the current attempt, starting at one.
   Combine with `--forever` to use the condition instead of the built-in attempt counter.
+- `attempt_since_reset`: `int` — the attempt number since exponential backoff was reset, starting at one.
 - `code`: `int | None` — the exit code of the last command.
   `code` is `None` when the command was not found.
 - `command_found`: `bool` — whether the last command was found.

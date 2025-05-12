@@ -45,19 +45,21 @@ import (
 const (
 	envVarAttempt           = "RECUR_ATTEMPT"
 	envVarMaxAttempts       = "RECUR_MAX_ATTEMPTS"
+	envVarAttemptSinceReset = "RECUR_ATTEMPT_SINCE_RESET"
 	exitCodeCommandNotFound = 255
 	exitCodeError           = -1
 	maxVerboseLevel         = 3
-	version                 = "2.1.0"
+	version                 = "2.2.0"
 )
 
 type attempt struct {
-	CommandFound bool
-	Duration     time.Duration
-	ExitCode     int
-	MaxAttempts  int
-	Number       int
-	TotalTime    time.Duration
+	CommandFound     bool
+	Duration         time.Duration
+	ExitCode         int
+	MaxAttempts      int
+	Number           int
+	NumberSinceReset int
+	TotalTime        time.Duration
 }
 
 type interval struct {
@@ -87,6 +89,7 @@ type retryConfig struct {
 	FixedDelay  interval
 	MaxAttempts int
 	RandomDelay interval
+	Reset       time.Duration
 	Timeout     time.Duration
 	Verbose     int
 }
@@ -98,6 +101,7 @@ const (
 	jitterDefault      = "0,0"
 	maxDelayDefault    = time.Duration(time.Hour)
 	maxAttemptsDefault = 10
+	resetDefault       = time.Duration(-time.Second)
 	timeoutDefault     = time.Duration(-time.Second)
 )
 
@@ -209,12 +213,13 @@ func evaluateCondition(attemptInfo attempt, expr string) (bool, error) {
 		"exit":    starlark.NewBuiltin("exit", StarlarkExit),
 		"inspect": starlark.NewBuiltin("inspect", StarlarkInspect),
 
-		"attempt":       starlark.MakeInt(attemptInfo.Number),
-		"code":          code,
-		"command_found": starlark.Bool(attemptInfo.CommandFound),
-		"max_attempts":  starlark.MakeInt(attemptInfo.MaxAttempts),
-		"time":          starlark.Float(float64(attemptInfo.Duration) / float64(time.Second)),
-		"total_time":    starlark.Float(float64(attemptInfo.TotalTime) / float64(time.Second)),
+		"attempt":             starlark.MakeInt(attemptInfo.Number),
+		"attempt_since_reset": starlark.MakeInt(attemptInfo.NumberSinceReset),
+		"code":                code,
+		"command_found":       starlark.Bool(attemptInfo.CommandFound),
+		"max_attempts":        starlark.MakeInt(attemptInfo.MaxAttempts),
+		"time":                starlark.Float(float64(attemptInfo.Duration) / float64(time.Second)),
+		"total_time":          starlark.Float(float64(attemptInfo.TotalTime) / float64(time.Second)),
 	}
 
 	val, err := starlark.Eval(thread, "", expr, globals)
@@ -253,10 +258,7 @@ func executeCommand(command string, args []string, timeout time.Duration, envVar
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	cmd.Stdin = os.Stdin
-
-	if len(envVars) > 0 {
-		cmd.Env = append(os.Environ(), envVars...)
-	}
+	cmd.Env = append(os.Environ(), envVars...)
 
 	err := cmd.Run()
 	if err != nil {
@@ -323,8 +325,10 @@ func retry(config retryConfig) (int, error) {
 	var startTime time.Time
 	var totalTime time.Duration
 
+	resetAttemptNum := 1
 	for attemptNum := 1; config.MaxAttempts < 0 || attemptNum <= config.MaxAttempts; attemptNum++ {
-		delay := delayBeforeAttempt(attemptNum, config)
+		attemptSinceReset := attemptNum - resetAttemptNum + 1
+		delay := delayBeforeAttempt(attemptSinceReset, config)
 		if delay > 0 {
 			if config.Verbose >= 1 {
 				log.Printf("waiting %s after attempt %d", formatDuration(delay), attemptNum-1)
@@ -339,6 +343,7 @@ func retry(config retryConfig) (int, error) {
 
 		envVars := []string{
 			fmt.Sprintf("%s=%d", envVarAttempt, attemptNum),
+			fmt.Sprintf("%s=%d", envVarAttemptSinceReset, attemptSinceReset),
 			fmt.Sprintf("%s=%d", envVarMaxAttempts, config.MaxAttempts),
 		}
 		cmdResult = executeCommand(config.Command, config.Args, config.Timeout, envVars)
@@ -346,6 +351,10 @@ func retry(config retryConfig) (int, error) {
 		attemptEnd := time.Now()
 		attemptDuration := attemptEnd.Sub(attemptStart)
 		totalTime = attemptEnd.Sub(startTime)
+
+		if config.Reset >= 0 && attemptDuration >= config.Reset {
+			resetAttemptNum = attemptNum
+		}
 
 		if config.Verbose >= 1 {
 			switch cmdResult.Status {
@@ -361,12 +370,13 @@ func retry(config retryConfig) (int, error) {
 		}
 
 		attemptInfo := attempt{
-			CommandFound: cmdResult.Status != statusNotFound,
-			Duration:     attemptDuration,
-			ExitCode:     cmdResult.ExitCode,
-			MaxAttempts:  config.MaxAttempts,
-			Number:       attemptNum,
-			TotalTime:    totalTime,
+			CommandFound:     cmdResult.Status != statusNotFound,
+			Duration:         attemptDuration,
+			ExitCode:         cmdResult.ExitCode,
+			MaxAttempts:      config.MaxAttempts,
+			Number:           attemptNum,
+			NumberSinceReset: attemptSinceReset,
+			TotalTime:        totalTime,
 		}
 
 		success, err := evaluateCondition(attemptInfo, config.Condition)
@@ -402,7 +412,7 @@ func wrapForTerm(s string) string {
 
 func usage(w io.Writer) {
 	s := fmt.Sprintf(
-		`Usage: %s [-h] [-V] [-a <attempts>] [-b <backoff>] [-c <condition>] [-d <delay>] [-f] [-j <jitter>] [-m <max-delay>] [-t <timeout>] [-v] [--] <command> [<arg> ...]`,
+		`Usage: %s [-h] [-V] [-a <attempts>] [-b <backoff>] [-c <condition>] [-d <delay>] [-f] [-j <jitter>] [-m <max-delay>] [-r <reset-time>] [-t <timeout>] [-v] [--] <command> [<arg> ...]`,
 		filepath.Base(os.Args[0]),
 	)
 
@@ -451,6 +461,9 @@ Options:
   -m, --max-delay %v
           Maximum allowed sum of constant delay and exponential backoff (duration)
 
+  -r, --reset %v
+          Minimum attempt time that resets exponential backoff (duration; negative for no reset)
+
   -t, --timeout %v
           Timeout for each attempt (duration; negative for no timeout)
 
@@ -463,6 +476,7 @@ Options:
 		formatDuration(delayDefault),
 		jitterDefault,
 		formatDuration(maxDelayDefault),
+		formatDuration(resetDefault),
 		formatDuration(timeoutDefault),
 		maxVerboseLevel,
 	)
@@ -575,6 +589,16 @@ func parseArgs() retryConfig {
 			}
 
 			config.FixedDelay.End = maxDelay
+
+		case "-r", "--reset":
+			value := nextArg(arg)
+
+			reset, err := time.ParseDuration(value)
+			if err != nil {
+				usageError("invalid reset time: %v", value)
+			}
+
+			config.Reset = reset
 
 		case "-t", "--timeout":
 			value := nextArg(arg)

@@ -283,6 +283,17 @@ func TestConditionTimeAndTotalTime(t *testing.T) {
 	}
 }
 
+func TestReset(t *testing.T) {
+	_, stderr, err := runCommand("--backoff", "0.1s", "--condition", "attempt == 3", "--reset", "10ms", "--verbose", commandSleep, "0.01")
+	if err != nil {
+		t.Errorf("Expected no error, got %v", err)
+	}
+
+	if count := len(regexp.MustCompile("waiting 100ms").FindAllString(stderr, -1)); count != 2 {
+		t.Errorf("Expected 2 instances of 'waiting 100ms', got %d", count)
+	}
+}
+
 func TestConditionTotalTime(t *testing.T) {
 	stdout, _, _ := runCommand("--condition", "total_time > 0.3", commandSleep, "0.1")
 
