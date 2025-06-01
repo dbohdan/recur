@@ -491,6 +491,7 @@ func parseArgs() retryConfig {
 		Condition:   conditionDefault,
 		FixedDelay:  interval{Start: delayDefault, End: maxDelayDefault},
 		MaxAttempts: maxAttemptsDefault,
+		Reset:       resetDefault,
 		Timeout:     timeoutDefault,
 	}
 
