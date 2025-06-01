@@ -112,7 +112,7 @@ func TestCommandNotFound(t *testing.T) {
 }
 
 func TestOptions(t *testing.T) {
-	_, _, err := runCommand("-a", "0", "-b", "1s", "-d", "0", "--jitter", "0,0.1s", "-m", "0", commandHello)
+	_, _, err := runCommand("-a", "0", "-b", "1s", "-d", "0", "-F", "--jitter", "0,0.1s", "-m", "0", commandHello)
 
 	if err != nil {
 		t.Errorf("Expected no error, got %v", err)
@@ -148,6 +148,14 @@ func TestBackoffAndNegativeDelay(t *testing.T) {
 
 	if matched, _ := regexp.MatchString(`waiting \d{2}ms`, stderr); !matched {
 		t.Error(`Expected 'waiting \d{2}ms' in stderr`)
+	}
+}
+
+func TestFibonacciBackoff(t *testing.T) {
+	_, stderr, _ := runCommand("-d", "-33.99s", "-F", "-v", commandExit99)
+
+	if matched, _ := regexp.MatchString(`waiting 10ms after attempt 9\n`, stderr); !matched {
+		t.Error(`Expected 'waiting 10ms after attempt 9\n' in stderr`)
 	}
 }
 

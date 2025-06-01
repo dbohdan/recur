@@ -34,8 +34,8 @@ go install dbohdan.com/recur/v2@latest
 
 ```none
 Usage: recur [-h] [-V] [-a <attempts>] [-b <backoff>] [-c <condition>] [-d
-<delay>] [-f] [-j <jitter>] [-m <max-delay>] [-r <reset-time>] [-t <timeout>]
-[-v] [--] <command> [<arg> ...]
+<delay>] [-F] [-f] [-j <jitter>] [-m <max-delay>] [-r <reset-time>] [-t
+<timeout>] [-v] [--] <command> [<arg> ...]
 
 Retry a command with exponential backoff and jitter.
 
@@ -64,6 +64,9 @@ Options:
 
   -d, --delay 0
           Constant delay (duration)
+
+  -F, --fib
+          Add Fibonacci backoff
 
   -f, --forever
           Infinite attempts

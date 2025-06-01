@@ -49,7 +49,7 @@ const (
 	exitCodeCommandNotFound = 255
 	exitCodeError           = -1
 	maxVerboseLevel         = 3
-	version                 = "2.2.0"
+	version                 = "2.3.0"
 )
 
 type attempt struct {
@@ -86,6 +86,7 @@ type retryConfig struct {
 	Args        []string
 	Backoff     time.Duration
 	Condition   string
+	Fibonacci   bool
 	FixedDelay  interval
 	MaxAttempts int
 	RandomDelay interval
@@ -289,12 +290,21 @@ func executeCommand(command string, args []string, timeout time.Duration, envVar
 	}
 }
 
+func fib(n int) float64 {
+	nf := float64(n)
+	return math.Round((math.Pow(math.Phi, nf) - math.Pow(-math.Phi, -nf)) * 0.4472135954999579)
+}
+
 func delayBeforeAttempt(attemptNum int, config retryConfig) time.Duration {
 	if attemptNum == 1 {
 		return 0
 	}
 
-	currFixed := config.FixedDelay.Start.Seconds() + math.Pow(config.Backoff.Seconds(), float64(attemptNum-1))
+	currFixed := config.FixedDelay.Start.Seconds()
+	currFixed += math.Pow(config.Backoff.Seconds(), float64(attemptNum-1))
+	if config.Fibonacci {
+		currFixed += fib(attemptNum - 1)
+	}
 	if currFixed > config.FixedDelay.End.Seconds() {
 		currFixed = config.FixedDelay.End.Seconds()
 	}
@@ -412,7 +422,7 @@ func wrapForTerm(s string) string {
 
 func usage(w io.Writer) {
 	s := fmt.Sprintf(
-		`Usage: %s [-h] [-V] [-a <attempts>] [-b <backoff>] [-c <condition>] [-d <delay>] [-f] [-j <jitter>] [-m <max-delay>] [-r <reset-time>] [-t <timeout>] [-v] [--] <command> [<arg> ...]`,
+		`Usage: %s [-h] [-V] [-a <attempts>] [-b <backoff>] [-c <condition>] [-d <delay>] [-F] [-f] [-j <jitter>] [-m <max-delay>] [-r <reset-time>] [-t <timeout>] [-v] [--] <command> [<arg> ...]`,
 		filepath.Base(os.Args[0]),
 	)
 
@@ -451,6 +461,9 @@ Options:
 
   -d, --delay %v
           Constant delay (duration)
+
+  -F, --fib
+          Add Fibonacci backoff
 
   -f, --forever
           Infinite attempts
@@ -566,6 +579,9 @@ func parseArgs() retryConfig {
 			if config.FixedDelay.End < config.FixedDelay.Start {
 				config.FixedDelay.End = config.FixedDelay.Start
 			}
+
+		case "-F", "--fib":
+			config.Fibonacci = true
 
 		case "-f", "--forever":
 			config.MaxAttempts = -1
