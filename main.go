@@ -472,10 +472,10 @@ Options:
           Additional random delay (maximum duration or 'min,max' duration)
 
   -m, --max-delay %v
-          Maximum allowed sum of constant delay and exponential backoff (duration)
+          Maximum allowed sum of constant delay, exponential backoff, and Fibonacci backoff (duration)
 
   -r, --reset %v
-          Minimum attempt time that resets exponential backoff (duration; negative for no reset)
+          Minimum attempt time that resets exponential and Fibonacci backoff (duration; negative for no reset)
 
   -t, --timeout %v
           Timeout for each attempt (duration; negative for no timeout)

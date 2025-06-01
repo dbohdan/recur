@@ -58,7 +58,7 @@ recur exits with the code 255.
 recur sets the environment variable `RECUR_ATTEMPT` for the command it runs to the current attempt number.
 This way the command can access the attempt counter.
 recur also sets `RECUR_MAX_ATTEMPTS` to the value of `-a`/`--attempts`
-and `RECUR_ATTEMPT_SINCE_RESET` to the attempt number since exponential backoff was reset.
+and `RECUR_ATTEMPT_SINCE_RESET` to the attempt number since exponential and Fibonacci backoff were reset.
 
 The following command succeeds on the last attempt:
 
@@ -95,7 +95,7 @@ You can use the following variables in the condition expression:
 
 - `attempt`: `int` — the number of the current attempt, starting at one.
   Combine with `--forever` to use the condition instead of the built-in attempt counter.
-- `attempt_since_reset`: `int` — the attempt number since exponential backoff was reset, starting at one.
+- `attempt_since_reset`: `int` — the attempt number since exponential and Fibonacci backoff were reset, starting at one.
 - `code`: `int | None` — the exit code of the last command.
   `code` is `None` when the command was not found.
 - `command_found`: `bool` — whether the last command was found.
