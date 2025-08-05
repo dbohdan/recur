@@ -26,25 +26,25 @@ tasks:
   build:
     desc: 'Build all components'
     deps:
-      - build_readme
-      - build_binaries
+      - build-readme
+      - build-binaries
 
-  build_binaries:
+  build-binaries:
     desc: 'Build all necessary binaries'
     deps:
-      - build_recur
-      - build_test_binaries
+      - build-recur
+      - build-test-binaries
 
-  build_binary:
+  build-binary:
     desc: 'Build a single Go binary'
     internal: true
     cmds:
       - go build -o {{.out | shellQuote}}{{.ext}} {{.src | shellQuote}}
 
-  build_readme:
+  build-readme:
     desc: 'Generate README.md from template'
     deps:
-      - build_recur
+      - build-recur
     cmds:
       - go run script/render_template.go < README.template.md > README.md
     status:
@@ -53,10 +53,10 @@ tasks:
     generates:
       - README.md
 
-  build_recur:
+  build-recur:
     desc: 'Build the recur binary'
     cmds:
-      - task: build_binary
+      - task: build-binary
         vars:
           out: recur
           src: main.go
@@ -65,10 +65,10 @@ tasks:
     generates:
       - recur{{.ext}}
 
-  build_test_binaries:
+  build-test-binaries:
     desc: 'Build all test binaries'
     cmds:
-      - task: build_binary
+      - task: build-binary
         vars:
           src: '{{.test_binary}}.go'
           out: '{{.test_binary}}'
@@ -99,13 +99,13 @@ tasks:
   release:
     desc: 'Prepare a release'
     deps:
-      - build_binaries
+      - build-binaries
     cmds:
       - VERSION=$(./recur{{.ext}} --version) go run script/release.go
 
   test:
     desc: 'Run tests'
     deps:
-      - build_binaries
+      - build-binaries
     cmds:
       - go test
