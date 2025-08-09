@@ -117,7 +117,7 @@ recur exits with the code 255.
 ### Standard input
 
 By default, the command run by recur inherits recur's [standard input](https://en.wikipedia.org/wiki/Standard_streams#Standard_input_(stdin)).
-This means that if standard input is a terminal, every attempt can read interactively.
+This means that if standard input is a terminal, every attempt can read interactively from the terminal.
 If standard input is a pipe or a redirected file, the data are consumed on the first attempt; later attempts will see an immediate [EOF](https://en.wikipedia.org/wiki/End-of-file).
 
 To feed the command the same data every time, use the option `-I`/`--replay-stdin`.
