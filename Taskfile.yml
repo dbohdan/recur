@@ -4,6 +4,7 @@ vars:
   dist_dir: dist/
   ext: '{{if eq OS "windows"}}.exe{{end}}'
   test_binaries: |
+    test/cat
     test/env
     test/exit99
     test/hello
@@ -76,11 +77,13 @@ tasks:
           var: test_binaries
           as: test_binary
     sources:
+      - test/cat.go
       - test/env.go
       - test/exit99.go
       - test/hello.go
       - test/sleep.go
     generates:
+      - test/cat{{.ext}}
       - test/env{{.ext}}
       - test/exit99{{.ext}}
       - test/hello{{.ext}}

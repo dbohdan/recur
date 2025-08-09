@@ -8,6 +8,7 @@
 
 /help
 /recur
+/test/cat
 /test/env
 /test/exit99
 /test/hello

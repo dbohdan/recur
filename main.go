@@ -21,6 +21,7 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -49,7 +50,7 @@ const (
 	exitCodeCommandNotFound = 255
 	exitCodeError           = -1
 	maxVerboseLevel         = 3
-	version                 = "2.3.0"
+	version                 = "2.4.0"
 )
 
 type attempt struct {
@@ -90,6 +91,7 @@ type retryConfig struct {
 	FixedDelay  interval
 	MaxAttempts int
 	RandomDelay interval
+	ReplayStdin bool
 	Reset       time.Duration
 	Timeout     time.Duration
 	Verbose     int
@@ -240,7 +242,7 @@ func evaluateCondition(attemptInfo attempt, expr string) (bool, error) {
 	return bool(val.Truth()), nil
 }
 
-func executeCommand(command string, args []string, timeout time.Duration, envVars []string) commandResult {
+func executeCommand(command string, args []string, timeout time.Duration, envVars []string, stdinContent []byte) commandResult {
 	if _, err := exec.LookPath(command); err != nil {
 		return commandResult{
 			Status:   statusNotFound,
@@ -258,7 +260,11 @@ func executeCommand(command string, args []string, timeout time.Duration, envVar
 	cmd := exec.CommandContext(ctx, command, args...)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
-	cmd.Stdin = os.Stdin
+	if stdinContent == nil {
+		cmd.Stdin = os.Stdin
+	} else {
+		cmd.Stdin = bytes.NewReader(stdinContent)
+	}
 	cmd.Env = append(os.Environ(), envVars...)
 
 	err := cmd.Run()
@@ -330,7 +336,7 @@ func formatDuration(d time.Duration) string {
 	return s
 }
 
-func retry(config retryConfig) (int, error) {
+func retry(config retryConfig, stdinContent []byte) (int, error) {
 	var cmdResult commandResult
 	var startTime time.Time
 	var totalTime time.Duration
@@ -356,7 +362,7 @@ func retry(config retryConfig) (int, error) {
 			fmt.Sprintf("%s=%d", envVarAttemptSinceReset, attemptSinceReset),
 			fmt.Sprintf("%s=%d", envVarMaxAttempts, config.MaxAttempts),
 		}
-		cmdResult = executeCommand(config.Command, config.Args, config.Timeout, envVars)
+		cmdResult = executeCommand(config.Command, config.Args, config.Timeout, envVars, stdinContent)
 
 		attemptEnd := time.Now()
 		attemptDuration := attemptEnd.Sub(attemptStart)
@@ -422,7 +428,7 @@ func wrapForTerm(s string) string {
 
 func usage(w io.Writer) {
 	s := fmt.Sprintf(
-		`Usage: %s [-h] [-V] [-a <attempts>] [-b <backoff>] [-c <condition>] [-d <delay>] [-F] [-f] [-j <jitter>] [-m <max-delay>] [-r <reset-time>] [-t <timeout>] [-v] [--] <command> [<arg> ...]`,
+		`Usage: %s [-h] [-V] [-a <attempts>] [-b <backoff>] [-c <condition>] [-d <delay>] [-F] [-f] [-I] [-j <jitter>] [-m <max-delay>] [-r <reset-time>] [-t <timeout>] [-v] [--] <command> [<arg> ...]`,
 		filepath.Base(os.Args[0]),
 	)
 
@@ -467,6 +473,9 @@ Options:
 
   -f, --forever
           Infinite attempts
+
+  -I, --replay-stdin
+          Read standard input until EOF at the start and replay it on each attempt
 
   -j, --jitter '%v'
           Additional random delay (maximum duration or 'min,max' duration)
@@ -589,6 +598,9 @@ func parseArgs() retryConfig {
 		case "-h", "--help":
 			printHelp = true
 
+		case "-I", "--replay-stdin":
+			config.ReplayStdin = true
+
 		case "-j", "--jitter":
 			jitter, err := parseInterval(nextArg(arg))
 			if err != nil {
@@ -678,11 +690,30 @@ func main() {
 	log.SetOutput(customWriter)
 	log.SetFlags(0)
 
+	var stdinContent []byte = nil
+	if config.ReplayStdin {
+		stdinContent = []byte{}
+
+		stat, err := os.Stdin.Stat()
+		if err != nil {
+			log.Printf("failed to stat stdin: %v", err)
+			os.Exit(1)
+		}
+
+		if stat.Mode()&os.ModeCharDevice == 0 {
+			stdinContent, err = io.ReadAll(os.Stdin)
+			if err != nil {
+				log.Printf("failed to read stdin: %v", err)
+				os.Exit(1)
+			}
+		}
+	}
+
 	if config.Verbose >= 3 {
 		log.Printf("configuration:\n%s\n", repr.String(config, repr.Indent("\t"), repr.OmitEmpty(false)))
 	}
 
-	exitCode, err := retry(config)
+	exitCode, err := retry(config, stdinContent)
 	if err != nil {
 		log.Printf("%v", err)
 	}

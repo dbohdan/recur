@@ -32,6 +32,8 @@ go install dbohdan.com/recur/v2@latest
 
 ## Usage
 
+### Command-line interface
+
 ```none
 {{ .Help | wrap 80 -}}
 ```
@@ -54,6 +56,31 @@ recur --backoff 2s --condition False --forever --max-delay 1m --reset 5m foo --c
 recur exits with the last command's exit code unless the user overrides this in the condition.
 When the command is not found during the last attempt,
 recur exits with the code 255.
+
+### Standard input
+
+By default, the command run by recur inherits recur's [standard input](https://en.wikipedia.org/wiki/Standard_streams#Standard_input_(stdin)).
+This means that if standard input is a terminal, every attempt can read interactively.
+If standard input is a pipe or a redirected file, the data are consumed on the first attempt; later attempts will see an immediate [EOF](https://en.wikipedia.org/wiki/End-of-file).
+
+To feed the command the same data every time, use the option `-I`/`--replay-stdin`.
+With this option, recur slurps its entire stdin into memory and replays the buffer on each attempt.
+
+```none
+$ echo hi | recur -a 3 -c False cat
+hi
+recur [00:00:00.0]: maximum 3 attempts reached
+
+$ echo hi | recur -a 3 -c False -I cat
+hi
+hi
+hi
+recur [00:00:00.0]: maximum 3 attempts reached
+```
+
+Because the data are buffered in memory, `--replay-stdin` is not recommended for very large inputs.
+
+### Environment variables
 
 recur sets the environment variable `RECUR_ATTEMPT` for the command it runs to the current attempt number.
 This way the command can access the attempt counter.

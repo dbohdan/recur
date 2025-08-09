@@ -29,6 +29,7 @@ import (
 )
 
 var (
+	commandCat    = "test/cat"
 	commandEnv    = "test/env"
 	commandExit99 = "test/exit99"
 	commandHello  = "test/hello"
@@ -42,6 +43,17 @@ func runCommand(args ...string) (string, string, error) {
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
+	err := cmd.Run()
+
+	return stdout.String(), stderr.String(), err
+}
+
+func runCommandWithStdin(stdin string, args ...string) (string, string, error) {
+	cmd := exec.Command(commandRecur, args...)
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+	cmd.Stdin = strings.NewReader(stdin)
 	err := cmd.Run()
 
 	return stdout.String(), stderr.String(), err
@@ -332,4 +344,20 @@ func TestConditionTimeout(t *testing.T) {
 	if count := len(regexp.MustCompile("command timed out").FindAllString(stderr, -1)); count != 3 {
 		t.Errorf("Expected 3 instances of 'command timed out', got %d", count)
 	}
+}
+
+func TestReplayStdin(t *testing.T) {
+	t.Run("without stdin replay", func(t *testing.T) {
+		stdout, _, _ := runCommandWithStdin("hi\n", "-a", "3", "-c", "False", commandCat)
+		if count := strings.Count(stdout, "hi"); count != 1 {
+			t.Errorf("Expected 1 instance of 'hi', got %d", count)
+		}
+	})
+
+	t.Run("with stdin replay", func(t *testing.T) {
+		stdout, _, _ := runCommandWithStdin("hi\n", "-a", "3", "-c", "False", "-I", commandCat)
+		if count := strings.Count(stdout, "hi"); count != 3 {
+			t.Errorf("Expected 3 instances of 'hi', got %d", count)
+		}
+	})
 }
