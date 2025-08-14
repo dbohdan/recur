@@ -6,7 +6,7 @@ require (
 	github.com/alecthomas/repr v0.4.0
 	github.com/kopoli/go-terminal-size v0.0.0-20170219200355-5c97524c8b54
 	github.com/mitchellh/go-wordwrap v1.0.1
-	go.starlark.net v0.0.0-20240925182052-1207426daebd
+	go.starlark.net v0.0.0-20250804182900-3c9dc17c5f2e
 )
 
 require (

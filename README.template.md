@@ -80,6 +80,29 @@ recur [00:00:00.0]: maximum 3 attempts reached
 
 Because the data are buffered in memory, `--replay-stdin` is not recommended for very large inputs.
 
+### Standard output
+
+The command's [standard output](https://en.wikipedia.org/wiki/Standard_streams#Standard_output_(stdout)) is passed through to recur's standard output by default.
+To prevent this and only print the output of the final, successful attempt if there is a successful attempt, use the option `-O`/`--hold-stdout`.
+With this option, recur buffers the command's stdout in memory and only prints it if the success condition is met or the condition expression calls `flush_stdout`.
+
+```none
+$ recur -c 'attempt == 3' sh -c 'echo "$RECUR_ATTEMPT"'
+1
+2
+3
+
+$ recur -c 'attempt == 3' -O sh -c 'echo "$RECUR_ATTEMPT"'
+3
+
+$ recur -c 'flush_stdout() or attempt == 3' -O sh -c 'echo "$RECUR_ATTEMPT"'
+1
+2
+3
+```
+
+Because the data are buffered in memory, `--hold-stdout` is not recommended for commands that produce very large output.
+
 ### Environment variables
 
 recur sets the environment variable `RECUR_ATTEMPT` for the command it runs to the current attempt number.
@@ -135,6 +158,9 @@ recur defines two custom functions:
 
 - `exit(code: int | None) -> None` — exit with the exit code.
   If `code` is `None`, exit with the exit code for a missing command (255).
+- `flush_stdout() -> None` — if recur is running with the option `-O`/`--hold-stdout`, recur will output the command's buffered standard output when it has finished evaluating the condition.
+  recur will print the standard output whether the condition is true or false and also if `exit` is called.
+  The function does nothing without the option `-O`/`--hold-stdout`.
 - `inspect(value: Any, *, prefix: str = "") -> Any` — log `value` prefixed by `prefix` and return `value`.
   This is useful for debugging.
 

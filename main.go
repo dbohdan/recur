@@ -41,6 +41,7 @@ import (
 	tsize "github.com/kopoli/go-terminal-size"
 	"github.com/mitchellh/go-wordwrap"
 	"go.starlark.net/starlark"
+	"go.starlark.net/syntax"
 )
 
 const (
@@ -50,7 +51,8 @@ const (
 	exitCodeCommandNotFound = 255
 	exitCodeError           = -1
 	maxVerboseLevel         = 3
-	version                 = "2.4.0"
+	starlarkVarFlushStdout  = "_flush_stdout"
+	version                 = "2.5.0"
 )
 
 type attempt struct {
@@ -89,6 +91,7 @@ type retryConfig struct {
 	Condition   string
 	Fibonacci   bool
 	FixedDelay  interval
+	HoldStdout  bool
 	MaxAttempts int
 	RandomDelay interval
 	ReplayStdin bool
@@ -153,6 +156,15 @@ func StarlarkExit(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tu
 	return nil, fmt.Errorf("exit code wasn't 'int' or 'None'")
 }
 
+func StarlarkFlushStdout(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+	if err := starlark.UnpackPositionalArgs(b.Name(), args, kwargs, 0); err != nil {
+		return nil, err
+	}
+
+	thread.SetLocal(starlarkVarFlushStdout, starlark.True)
+	return starlark.None, nil
+}
+
 func StarlarkInspect(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
 	var prefix starlark.String
 	var value starlark.Value
@@ -202,7 +214,17 @@ func parseInterval(s string) (interval, error) {
 	return interval{Start: start, End: end}, nil
 }
 
-func evaluateCondition(attemptInfo attempt, expr string) (bool, error) {
+func flushStdoutLocal(thread *starlark.Thread) bool {
+	if v := thread.Local(starlarkVarFlushStdout); v != nil {
+		if flushStdoutVal, ok := v.(starlark.Value); ok {
+			return flushStdoutVal == starlark.True
+		}
+	}
+
+	return false
+}
+
+func evaluateCondition(attemptInfo attempt, expr string) (bool, bool, error) {
 	thread := &starlark.Thread{Name: "condition"}
 
 	var code starlark.Value
@@ -212,9 +234,10 @@ func evaluateCondition(attemptInfo attempt, expr string) (bool, error) {
 		code = starlark.None
 	}
 
-	globals := starlark.StringDict{
-		"exit":    starlark.NewBuiltin("exit", StarlarkExit),
-		"inspect": starlark.NewBuiltin("inspect", StarlarkInspect),
+	env := starlark.StringDict{
+		"exit":         starlark.NewBuiltin("exit", StarlarkExit),
+		"flush_stdout": starlark.NewBuiltin("flush_stdout", StarlarkFlushStdout),
+		"inspect":      starlark.NewBuiltin("inspect", StarlarkInspect),
 
 		"attempt":             starlark.MakeInt(attemptInfo.Number),
 		"attempt_since_reset": starlark.MakeInt(attemptInfo.NumberSinceReset),
@@ -225,29 +248,33 @@ func evaluateCondition(attemptInfo attempt, expr string) (bool, error) {
 		"total_time":          starlark.Float(float64(attemptInfo.TotalTime) / float64(time.Second)),
 	}
 
-	val, err := starlark.Eval(thread, "", expr, globals)
+	val, err := starlark.EvalOptions(syntax.LegacyFileOptions(), thread, "", expr, env)
+	flushStdout := flushStdoutLocal(thread)
 	if err != nil {
 		var exitErr *exitRequestError
 		if errors.As(err, &exitErr) {
-			return false, exitErr
+			return false, flushStdout, exitErr
 		}
 
-		return false, err
+		return false, false, err
 	}
 
 	if val.Type() != "bool" {
-		return false, fmt.Errorf("condition must return a boolean, got %s", val.Type())
+		return false, false, fmt.Errorf("condition must return a boolean, got %s", val.Type())
 	}
 
-	return bool(val.Truth()), nil
+	success := bool(val.Truth())
+	flushStdout = flushStdout || success
+
+	return success, flushStdout, nil
 }
 
-func executeCommand(command string, args []string, timeout time.Duration, envVars []string, stdinContent []byte) commandResult {
+func executeCommand(command string, args []string, timeout time.Duration, envVars []string, stdinContent []byte, holdStdout bool) (commandResult, []byte) {
 	if _, err := exec.LookPath(command); err != nil {
 		return commandResult{
 			Status:   statusNotFound,
 			ExitCode: exitCodeCommandNotFound,
-		}
+		}, nil
 	}
 
 	ctx := context.Background()
@@ -258,7 +285,12 @@ func executeCommand(command string, args []string, timeout time.Duration, envVar
 	}
 
 	cmd := exec.CommandContext(ctx, command, args...)
-	cmd.Stdout = os.Stdout
+	var stdoutBuffer bytes.Buffer
+	if holdStdout {
+		cmd.Stdout = &stdoutBuffer
+	} else {
+		cmd.Stdout = os.Stdout
+	}
 	cmd.Stderr = os.Stderr
 	if stdinContent == nil {
 		cmd.Stdin = os.Stdin
@@ -273,7 +305,7 @@ func executeCommand(command string, args []string, timeout time.Duration, envVar
 			return commandResult{
 				Status:   statusTimeout,
 				ExitCode: exitCodeError,
-			}
+			}, stdoutBuffer.Bytes()
 		}
 
 		var exitErr *exec.ExitError
@@ -281,19 +313,19 @@ func executeCommand(command string, args []string, timeout time.Duration, envVar
 			return commandResult{
 				Status:   statusFinished,
 				ExitCode: exitErr.ExitCode(),
-			}
+			}, stdoutBuffer.Bytes()
 		}
 
 		return commandResult{
 			Status:   statusUnknownError,
 			ExitCode: exitCodeError,
-		}
+		}, stdoutBuffer.Bytes()
 	}
 
 	return commandResult{
 		Status:   statusFinished,
 		ExitCode: cmd.ProcessState.ExitCode(),
-	}
+	}, stdoutBuffer.Bytes()
 }
 
 func fib(n int) float64 {
@@ -338,6 +370,7 @@ func formatDuration(d time.Duration) string {
 
 func retry(config retryConfig, stdinContent []byte) (int, error) {
 	var cmdResult commandResult
+	var stdoutContent []byte
 	var startTime time.Time
 	var totalTime time.Duration
 
@@ -362,7 +395,7 @@ func retry(config retryConfig, stdinContent []byte) (int, error) {
 			fmt.Sprintf("%s=%d", envVarAttemptSinceReset, attemptSinceReset),
 			fmt.Sprintf("%s=%d", envVarMaxAttempts, config.MaxAttempts),
 		}
-		cmdResult = executeCommand(config.Command, config.Args, config.Timeout, envVars, stdinContent)
+		cmdResult, stdoutContent = executeCommand(config.Command, config.Args, config.Timeout, envVars, stdinContent, config.HoldStdout)
 
 		attemptEnd := time.Now()
 		attemptDuration := attemptEnd.Sub(attemptStart)
@@ -395,7 +428,10 @@ func retry(config retryConfig, stdinContent []byte) (int, error) {
 			TotalTime:        totalTime,
 		}
 
-		success, err := evaluateCondition(attemptInfo, config.Condition)
+		success, flushStdout, err := evaluateCondition(attemptInfo, config.Condition)
+		if flushStdout {
+			os.Stdout.Write(stdoutContent)
+		}
 		if err != nil {
 			var exitErr *exitRequestError
 			if errors.As(err, &exitErr) {
@@ -428,7 +464,7 @@ func wrapForTerm(s string) string {
 
 func usage(w io.Writer) {
 	s := fmt.Sprintf(
-		`Usage: %s [-h] [-V] [-a <attempts>] [-b <backoff>] [-c <condition>] [-d <delay>] [-F] [-f] [-I] [-j <jitter>] [-m <max-delay>] [-r <reset-time>] [-t <timeout>] [-v] [--] <command> [<arg> ...]`,
+		`Usage: %s [-h] [-V] [-a <attempts>] [-b <backoff>] [-c <condition>] [-d <delay>] [-F] [-f] [-I] [-j <jitter>] [-m <max-delay>] [-O] [-r <reset-time>] [-t <timeout>] [-v] [--] <command> [<arg> ...]`,
 		filepath.Base(os.Args[0]),
 	)
 
@@ -482,6 +518,9 @@ Options:
 
   -m, --max-delay %v
           Maximum allowed sum of constant delay, exponential backoff, and Fibonacci backoff (duration)
+
+  -O, --hold-stdout
+          Buffer standard output for each attempt and only print it on success
 
   -r, --reset %v
           Minimum attempt time that resets exponential and Fibonacci backoff (duration; negative for no reset)
@@ -618,6 +657,9 @@ func parseArgs() retryConfig {
 			}
 
 			config.FixedDelay.End = maxDelay
+
+		case "-O", "--hold-stdout":
+			config.HoldStdout = true
 
 		case "-r", "--reset":
 			value := nextArg(arg)

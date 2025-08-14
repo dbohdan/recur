@@ -361,3 +361,47 @@ func TestReplayStdin(t *testing.T) {
 		}
 	})
 }
+
+func TestHoldStdout(t *testing.T) {
+	t.Run("no holding stdout", func(t *testing.T) {
+		stdout, _, _ := runCommand("-a", "3", "-c", "False", commandHello)
+		if count := strings.Count(stdout, "hello"); count != 3 {
+			t.Errorf("Expected 3 instances of 'hello', got %d", count)
+		}
+	})
+
+	t.Run("holding stdout, failure", func(t *testing.T) {
+		stdout, _, _ := runCommand("-a", "3", "-c", "False", "-O", commandHello)
+		if stdout != "" {
+			t.Errorf("Expected empty stdout, got %q", stdout)
+		}
+	})
+
+	t.Run("holding stdout, success", func(t *testing.T) {
+		stdout, _, _ := runCommand("-a", "3", "-c", "attempt == 2", "-O", commandHello)
+		if stdout != "hello\n" {
+			t.Errorf("Expected one instance of 'hello', got %q", stdout)
+		}
+	})
+
+	t.Run("flushing stdout, failure", func(t *testing.T) {
+		stdout, _, _ := runCommand("-a", "3", "-c", "flush_stdout() or False", "-O", commandHello)
+		if count := strings.Count(stdout, "hello"); count != 3 {
+			t.Errorf("Expected 3 instances of 'hello', got %d", count)
+		}
+	})
+
+	t.Run("flushing stdout, success", func(t *testing.T) {
+		stdout, _, _ := runCommand("-a", "3", "-c", "flush_stdout() or attempt == 2", "-O", commandHello)
+		if count := strings.Count(stdout, "hello"); count != 2 {
+			t.Errorf("Expected 2 instances of 'hello', got %d", count)
+		}
+	})
+
+	t.Run("flushing stdout, exit", func(t *testing.T) {
+		stdout, _, _ := runCommand("-a", "3", "-c", "flush_stdout() or exit(0)", "-O", commandHello)
+		if stdout != "hello\n" {
+			t.Errorf("Expected one instance of 'hello', got %q", stdout)
+		}
+	})
+}

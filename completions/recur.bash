@@ -4,7 +4,7 @@ _recur() {
     COMPREPLY=()
     cur=${COMP_WORDS[COMP_CWORD]}
     prev=${COMP_WORDS[COMP_CWORD - 1]}
-    opts='-h --help -V --version -a --attempts -b --backoff -c --condition -d --delay -F --fib -f --forever -I --replay-stdin -j --jitter -m --max-delay -r --reset -t --timeout -v --verbose'
+    opts='-h --help -V --version -a --attempts -b --backoff -c --condition -d --delay -F --fib -f --forever -I --replay-stdin -j --jitter -m --max-delay -O --hold-stdout --r --reset -t --timeout -v --verbose'
 
     case "${prev}" in
     -a | --attempts)
