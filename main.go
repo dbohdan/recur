@@ -40,8 +40,6 @@ import (
 	"github.com/alecthomas/repr"
 	tsize "github.com/kopoli/go-terminal-size"
 	"github.com/mitchellh/go-wordwrap"
-	"go.starlark.net/starlark"
-	"go.starlark.net/syntax"
 )
 
 const (
@@ -51,7 +49,6 @@ const (
 	exitCodeCommandNotFound = 255
 	exitCodeError           = -1
 	maxVerboseLevel         = 3
-	starlarkVarFlushStdout  = "_flush_stdout"
 	version                 = "2.5.0"
 )
 
@@ -115,10 +112,6 @@ type elapsedTimeWriter struct {
 	startTime time.Time
 }
 
-type exitRequestError struct {
-	Code int
-}
-
 func (w *elapsedTimeWriter) Write(bytes []byte) (int, error) {
 	elapsed := time.Since(w.startTime)
 
@@ -130,57 +123,12 @@ func (w *elapsedTimeWriter) Write(bytes []byte) (int, error) {
 	return fmt.Fprintf(os.Stderr, "recur [%02d:%02d:%02d.%01d]: %s", hours, minutes, seconds, deciseconds, string(bytes))
 }
 
+type exitRequestError struct {
+	Code int
+}
+
 func (e *exitRequestError) Error() string {
 	return fmt.Sprintf("exit requested with code %d", e.Code)
-}
-
-func StarlarkExit(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
-	var code starlark.Value
-	if err := starlark.UnpackPositionalArgs(b.Name(), args, kwargs, 1, &code); err != nil {
-		return nil, err
-	}
-
-	if _, ok := code.(starlark.NoneType); ok {
-		return starlark.None, &exitRequestError{Code: int(exitCodeCommandNotFound)}
-	}
-
-	if codeInt, ok := code.(starlark.Int); ok {
-		exitCode, ok := codeInt.Int64()
-		if !ok {
-			return nil, fmt.Errorf("exit code too large")
-		}
-
-		return starlark.None, &exitRequestError{Code: int(exitCode)}
-	}
-
-	return nil, fmt.Errorf("exit code wasn't 'int' or 'None'")
-}
-
-func StarlarkFlushStdout(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
-	if err := starlark.UnpackPositionalArgs(b.Name(), args, kwargs, 0); err != nil {
-		return nil, err
-	}
-
-	thread.SetLocal(starlarkVarFlushStdout, starlark.True)
-	return starlark.None, nil
-}
-
-func StarlarkInspect(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
-	var prefix starlark.String
-	var value starlark.Value
-
-	if err := starlark.UnpackArgs(b.Name(), args, kwargs, "value", &value, "prefix?", &prefix); err != nil {
-		return nil, err
-	}
-
-	prefixStr := ""
-	if prefix.Len() > 0 {
-		prefixStr = prefix.GoString()
-	}
-
-	log.Printf("inspect: %s%v\n", prefixStr, value)
-
-	return value, nil
 }
 
 func parseInterval(s string) (interval, error) {
@@ -212,61 +160,6 @@ func parseInterval(s string) (interval, error) {
 	}
 
 	return interval{Start: start, End: end}, nil
-}
-
-func flushStdoutLocal(thread *starlark.Thread) bool {
-	if v := thread.Local(starlarkVarFlushStdout); v != nil {
-		if flushStdoutVal, ok := v.(starlark.Value); ok {
-			return flushStdoutVal == starlark.True
-		}
-	}
-
-	return false
-}
-
-func evaluateCondition(attemptInfo attempt, expr string) (bool, bool, error) {
-	thread := &starlark.Thread{Name: "condition"}
-
-	var code starlark.Value
-	if attemptInfo.CommandFound {
-		code = starlark.MakeInt(attemptInfo.ExitCode)
-	} else {
-		code = starlark.None
-	}
-
-	env := starlark.StringDict{
-		"exit":         starlark.NewBuiltin("exit", StarlarkExit),
-		"flush_stdout": starlark.NewBuiltin("flush_stdout", StarlarkFlushStdout),
-		"inspect":      starlark.NewBuiltin("inspect", StarlarkInspect),
-
-		"attempt":             starlark.MakeInt(attemptInfo.Number),
-		"attempt_since_reset": starlark.MakeInt(attemptInfo.NumberSinceReset),
-		"code":                code,
-		"command_found":       starlark.Bool(attemptInfo.CommandFound),
-		"max_attempts":        starlark.MakeInt(attemptInfo.MaxAttempts),
-		"time":                starlark.Float(float64(attemptInfo.Duration) / float64(time.Second)),
-		"total_time":          starlark.Float(float64(attemptInfo.TotalTime) / float64(time.Second)),
-	}
-
-	val, err := starlark.EvalOptions(syntax.LegacyFileOptions(), thread, "", expr, env)
-	flushStdout := flushStdoutLocal(thread)
-	if err != nil {
-		var exitErr *exitRequestError
-		if errors.As(err, &exitErr) {
-			return false, flushStdout, exitErr
-		}
-
-		return false, false, err
-	}
-
-	if val.Type() != "bool" {
-		return false, false, fmt.Errorf("condition must return a boolean, got %s", val.Type())
-	}
-
-	success := bool(val.Truth())
-	flushStdout = flushStdout || success
-
-	return success, flushStdout, nil
 }
 
 func executeCommand(command string, args []string, timeout time.Duration, envVars []string, stdinContent []byte, holdStdout bool) (commandResult, []byte) {
