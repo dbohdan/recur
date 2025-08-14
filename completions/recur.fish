@@ -6,6 +6,7 @@ complete -c recur -s c -l condition -x -d "Success condition" -a "'code == 0' 'c
 complete -c recur -s d -l delay -x -d "Constant delay" -a "1s 5s 30s 1m 5m"
 complete -c recur -s f -l forever -d "Infinite attempts"
 complete -c recur -s I -l replay-stdin -d "Replay standard input on each attempt"
+complete -c recur -s O -l hold-stdout -d "Buffer standard output for each attempt and only print it on success"
 complete -c recur -s j -l jitter -x -d "Additional random delay" -a "1s 1s,5s 1m"
 complete -c recur -s m -l max-delay -x -d "Maximum allowed delay" -a "1s 5s 30s 1m 5m"
 complete -c recur -s t -l timeout -x -d "Timeout for each attempt" -a "1s 5s 30s 1m 5m"
