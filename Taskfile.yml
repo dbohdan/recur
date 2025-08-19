@@ -40,7 +40,7 @@ tasks:
     desc: 'Build a single Go binary'
     internal: true
     cmds:
-      - go build -o {{.out | shellQuote}}{{.ext}} {{.src | shellQuote}} {{range .srcs}}{{. | shellQuote}}{{end}}
+      - go build -o {{.out | shellQuote}}{{.ext}}{{range (.srcs | trim | splitLines)}} {{. | shellQuote}}{{end}}
 
   build-readme:
     desc: 'Generate README.md from template'
@@ -61,9 +61,9 @@ tasks:
       - task: build-binary
         vars:
           out: recur
-          src: main.go
-          srcs:
-            - starlark.go
+          srcs: |
+            main.go
+            starlark.go
     sources:
       - main.go
       - starlark.go
@@ -75,8 +75,8 @@ tasks:
     cmds:
       - task: build-binary
         vars:
-          src: '{{.test_binary}}.go'
           out: '{{.test_binary}}'
+          srcs: '{{.test_binary}}.go'
         for:
           var: test_binaries
           as: test_binary
