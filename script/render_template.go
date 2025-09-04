@@ -4,17 +4,18 @@ import (
 	"bytes"
 	"io/ioutil"
 	"log"
-	"os"
 	"os/exec"
-	"text/template"
+	"regexp"
+	"strings"
 
 	"github.com/mitchellh/go-wordwrap"
 )
 
 func main() {
-	templateData, err := ioutil.ReadAll(os.Stdin)
+	readmeFile := "README.md"
+	content, err := ioutil.ReadFile(readmeFile)
 	if err != nil {
-		log.Fatalf("Failed to read template: %v", err)
+		log.Fatalf(`Failed to read "README.md": %v`, err)
 	}
 
 	cmd := exec.Command("./recur", "--help")
@@ -24,24 +25,14 @@ func main() {
 		log.Fatalf("Failed to run command: %v", err)
 	}
 
-	funcMap := template.FuncMap{
-		"wrap": func(width uint, s string) (string, error) {
-			return wordwrap.WrapString(s, width), nil
-		},
-	}
+	helpText := strings.TrimSpace(cmdOutput.String())
+	wrappedHelp := wordwrap.WrapString(helpText, 80)
 
-	tmpl, err := template.New("template").Funcs(funcMap).Parse(string(templateData))
-	if err != nil {
-		log.Fatalf("Failed to parse template: %v", err)
-	}
+	re := regexp.MustCompile(`(?s)<!-- BEGIN USAGE -->.*<!-- END USAGE -->`)
+	newUsageBlock := "<!-- BEGIN USAGE -->\n```none\n" + wrappedHelp + "\n```\n<!-- END USAGE -->"
+	updatedContent := re.ReplaceAllLiteralString(string(content), newUsageBlock)
 
-	data := struct {
-		Help string
-	}{
-		Help: cmdOutput.String(),
-	}
-
-	if err := tmpl.Execute(os.Stdout, data); err != nil {
-		log.Fatalf("Failed to execute template: %v", err)
+	if err := ioutil.WriteFile(readmeFile, []byte(updatedContent), 0644); err != nil {
+		log.Fatalf(`Failed to write "README.md": %v`, err)
 	}
 }

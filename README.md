@@ -34,6 +34,7 @@ go install dbohdan.com/recur/v2@latest
 
 ### Command-line interface
 
+<!-- BEGIN USAGE -->
 ```none
 Usage: recur [-h] [-V] [-a <attempts>] [-b <backoff>] [-c <condition>] [-d
 <delay>] [-F] [-f] [-I] [-j <jitter>] [-m <max-delay>] [-O] [-r <reset-time>]
@@ -97,6 +98,7 @@ Fibonacci backoff (duration)
   -v, --verbose
           Increase verbosity (up to 3 times)
 ```
+<!-- END USAGE -->
 
 The "duration" arguments take [Go duration strings](https://pkg.go.dev/time#ParseDuration);
 for example, `0`, `100ms`, `2.5s`, `0.5m`, or `1h`.

@@ -43,13 +43,13 @@ tasks:
       - go build -o {{.out | shellQuote}}{{.ext}}{{range (.srcs | trim | splitLines)}} {{. | shellQuote}}{{end}}
 
   build-readme:
-    desc: 'Generate README.md from template'
+    desc: 'Update the usage section in "README.md" with current help'
     deps:
       - build-recur
     cmds:
-      - go run script/render_template.go < README.template.md > README.md
+      - go run script/render_template.go
     status:
-      - README.template.md
+      - README.md
       - main.go
       - starlark.go
     generates:
@@ -96,7 +96,6 @@ tasks:
   clean:
     desc: 'Clean up binaries and generated files'
     cmds:
-      - rm -f README.md
       - rm -f recur{{.ext}}
       - cmd: rm -f {{.test_binary | shellQuote}}{{.ext}}
         for:
