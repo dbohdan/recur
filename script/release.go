@@ -54,6 +54,11 @@ func main() {
 			os.Exit(1)
 		}
 	}
+
+	if err := signFile(filepath.Join(releaseDir, checksumFilename)); err != nil {
+		fmt.Fprintf(os.Stderr, "Signing failed: %v\n", err)
+		os.Exit(1)
+	}
 }
 
 func build(dir string, target BuildTarget, version string) error {
@@ -126,4 +131,14 @@ func generateChecksum(filePath, version string) error {
 	}
 
 	return nil
+}
+
+func signFile(filePath string) error {
+	fmt.Printf("Signing %s\n", filePath)
+
+	cmd := exec.Command("minisign", "-S", "-m", filePath)
+	cmd.Stdin = os.Stdin
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	return cmd.Run()
 }
