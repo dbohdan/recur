@@ -14,6 +14,7 @@ const (
 	checksumFilename = "SHA256SUMS.txt"
 	projectName      = "recur"
 	distDir          = "dist"
+	sshKey           = ".ssh/git"
 )
 
 type BuildTarget struct {
@@ -134,11 +135,17 @@ func generateChecksum(filePath, version string) error {
 }
 
 func signFile(filePath string) error {
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return err
+	}
+
 	fmt.Printf("Signing %s\n", filePath)
 
-	cmd := exec.Command("minisign", "-S", "-m", filePath)
+	cmd := exec.Command("ssh-keygen", "-Y", "sign", "-n", "file", "-f", filepath.Join(homeDir, sshKey), filePath)
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
+
 	return cmd.Run()
 }
