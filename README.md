@@ -2,7 +2,7 @@
 
 **recur** is a command-line tool that runs a single command repeatedly until it succeeds or no more attempts are left.
 It implements optional [exponential backoff](https://en.wikipedia.org/wiki/Exponential_backoff) with configurable [jitter](https://en.wikipedia.org/wiki/Thundering_herd_problem#Mitigation).
-It lets you write the success condition in Starlark.
+It lets you write the success condition in [Starlark](https://laurent.le-brun.eu/blog/an-overview-of-starlark).
 
 ## Installation
 
