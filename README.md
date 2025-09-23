@@ -252,6 +252,9 @@ I wanted something like retry-cli but without the Node.js dependency.
 
 There are other similar tools:
 
+- [attempt](https://github.com/MaxBondABE/attempt).
+  Written in Rust.
+  `cargo install attempt-cli`.
 - [eb](https://github.com/rye/eb).
   Written in Rust.
   `cargo install eb`.
