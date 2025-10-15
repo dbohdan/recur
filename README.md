@@ -17,6 +17,14 @@ OpenBSD (amd64),
 and Windows (amd64, arm64, x86)
 are attached to [releases](https://github.com/dbohdan/recur/releases).
 
+### Homebrew
+
+You can install recur [from Homebrew](https://formulae.brew.sh/formula/recur) on macOS and Linux:
+
+```shell
+brew install recur
+```
+
 ### Go
 
 Install Go, then run the following command:
