@@ -118,8 +118,8 @@ func TestExitCode(t *testing.T) {
 func TestCommandNotFound(t *testing.T) {
 	_, _, err := runCommand(noSuchCommand)
 
-	if exitErr, ok := err.(*exec.ExitError); !ok || exitErr.ExitCode() != 255 {
-		t.Errorf("Expected exit status 255, got %v", err)
+	if exitErr, ok := err.(*exec.ExitError); !ok || exitErr.ExitCode() != 127 {
+		t.Errorf("Expected exit status 127, got %v", err)
 	}
 }
 
@@ -262,8 +262,8 @@ func TestConditionExitIfCode(t *testing.T) {
 func TestConditionExitArgNone(t *testing.T) {
 	_, _, err := runCommand("-c", "exit(None)", commandHello)
 
-	if exitErr, ok := err.(*exec.ExitError); !ok || exitErr.ExitCode() != 255 {
-		t.Errorf("Expected exit status 255, got %v", err)
+	if exitErr, ok := err.(*exec.ExitError); !ok || exitErr.ExitCode() != 127 {
+		t.Errorf("Expected exit status 127, got %v", err)
 	}
 }
 

@@ -125,7 +125,7 @@ recur --backoff 2s --condition False --forever --max-delay 1m --reset 5m foo --c
 
 recur exits with the last command's exit code unless the user overrides this in the condition.
 When the command is not found during the last attempt,
-recur exits with the code 255.
+recur exits with the code 127.
 
 ### Standard input
 
@@ -287,7 +287,7 @@ You can use the following variables in the condition expression:
 recur defines custom functions:
 
 - `exit(code: int | None) -> None` — exit with the exit code.
-  If `code` is `None`, exit with the exit code for a missing command (255).
+  If `code` is `None`, exit with the exit code for a missing command (127).
 - `flush_stdout() -> None` — if recur is running with the option `-O`/`--hold-stdout`, recur will output the command's buffered standard output after evaluating the condition.
   recur will print the standard output whether the condition is true or false and also if `exit` is called.
   The function does nothing without the option `-O`/`--hold-stdout`.
