@@ -30,7 +30,7 @@ brew install recur
 Install Go, then run the following command:
 
 ```shell
-go install dbohdan.com/recur/v2@latest
+go install dbohdan.com/recur/v3@latest
 ```
 
 ## Build requirements
