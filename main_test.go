@@ -317,7 +317,7 @@ func TestConditionInspectWithPrefix(t *testing.T) {
 
 func TestConditionReSearchStdin(t *testing.T) {
 	t.Run("simple match", func(t *testing.T) {
-		_, _, err := runCommandWithStdin("hello world", "-I", "-c", `re_search_stdin("world")`, commandCat)
+		_, _, err := runCommandWithStdin("hello world", "-I", "-c", `stdin.search("world")`, commandCat)
 
 		if err != nil {
 			t.Errorf("Expected no error, got %v", err)
@@ -325,7 +325,7 @@ func TestConditionReSearchStdin(t *testing.T) {
 	})
 
 	t.Run("capture groups", func(t *testing.T) {
-		_, _, err := runCommandWithStdin("hello world", "-I", "-c", `re_search_stdin("w(o)rld")[1] == "o"`, commandCat)
+		_, _, err := runCommandWithStdin("hello world", "-I", "-c", `stdin.search("w(o)rld")[1] == "o"`, commandCat)
 
 		if err != nil {
 			t.Errorf("Expected no error, got %v", err)
@@ -337,7 +337,7 @@ func TestConditionReSearchStdin(t *testing.T) {
 			"hello world",
 			"-I",
 			"-c",
-			`re_search_stdin("w(o)rld", group=1) == "o" and re_search_stdin("foo", group=1, default="bar") == "bar"`,
+			`stdin.search("w(o)rld", group=1) == "o" and stdin.search("foo", group=1, default="bar") == "bar"`,
 			commandCat,
 		)
 
@@ -349,7 +349,7 @@ func TestConditionReSearchStdin(t *testing.T) {
 
 func TestConditionReSearchStdout(t *testing.T) {
 	t.Run("simple match", func(t *testing.T) {
-		_, _, err := runCommand("-O", "-c", `re_search_stdout("hello")`, commandHello)
+		_, _, err := runCommand("-O", "-c", `stdout.search("hello")`, commandHello)
 
 		if err != nil {
 			t.Errorf("Expected no error, got %v", err)
@@ -357,7 +357,7 @@ func TestConditionReSearchStdout(t *testing.T) {
 	})
 
 	t.Run("capture groups", func(t *testing.T) {
-		_, _, err := runCommand("-O", "-c", `re_search_stdout("h(e)llo")[1] == "e"`, commandHello)
+		_, _, err := runCommand("-O", "-c", `stdout.search("h(e)llo")[1] == "e"`, commandHello)
 
 		if err != nil {
 			t.Errorf("Expected no error, got %v", err)
@@ -368,7 +368,7 @@ func TestConditionReSearchStdout(t *testing.T) {
 		_, _, err := runCommand(
 			"-O",
 			"-c",
-			`re_search_stdout("h(e)llo", group=1) == "e" and re_search_stdout("foo", group=1, default="bar") == "bar"`,
+			`stdout.search("h(e)llo", group=1) == "e" and stdout.search("foo", group=1, default="bar") == "bar"`,
 			commandHello,
 		)
 
@@ -468,21 +468,21 @@ func TestHoldStdout(t *testing.T) {
 	})
 
 	t.Run("flushing stdout, failure", func(t *testing.T) {
-		stdout, _, _ := runCommand("-a", "3", "-c", "flush_stdout() or False", "-O", commandHello)
+		stdout, _, _ := runCommand("-a", "3", "-c", "stdout.flush() or False", "-O", commandHello)
 		if count := strings.Count(stdout, "hello"); count != 3 {
 			t.Errorf("Expected 3 instances of 'hello', got %d", count)
 		}
 	})
 
 	t.Run("flushing stdout, success", func(t *testing.T) {
-		stdout, _, _ := runCommand("-a", "3", "-c", "flush_stdout() or attempt == 2", "-O", commandHello)
+		stdout, _, _ := runCommand("-a", "3", "-c", "stdout.flush() or attempt == 2", "-O", commandHello)
 		if count := strings.Count(stdout, "hello"); count != 2 {
 			t.Errorf("Expected 2 instances of 'hello', got %d", count)
 		}
 	})
 
 	t.Run("flushing stdout, exit", func(t *testing.T) {
-		stdout, _, _ := runCommand("-a", "3", "-c", "flush_stdout() or exit(0)", "-O", commandHello)
+		stdout, _, _ := runCommand("-a", "3", "-c", "stdout.flush() or exit(0)", "-O", commandHello)
 		if stdout != "hello\n" {
 			t.Errorf("Expected one instance of 'hello', got %q", stdout)
 		}

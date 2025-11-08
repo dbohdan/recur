@@ -57,16 +57,6 @@ func StarlarkExit(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tu
 	return nil, fmt.Errorf("exit code wasn't 'int' or 'None'")
 }
 
-func StarlarkFlushStdout(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
-	if err := starlark.UnpackPositionalArgs(b.Name(), args, kwargs, 0); err != nil {
-		return nil, err
-	}
-
-	thread.SetLocal(starlarkVarFlushStdout, starlark.True)
-
-	return starlark.None, nil
-}
-
 func StarlarkInspect(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
 	var prefix starlark.String
 	var value starlark.Value
@@ -85,6 +75,50 @@ func StarlarkInspect(thread *starlark.Thread, b *starlark.Builtin, args starlark
 	return value, nil
 }
 
+// starlarkIOBuffer is a starlark.Value that represents a buffer
+// (like stdin or stdout) and provides methods to interact with it.
+type starlarkIOBuffer struct {
+	methods starlark.StringDict
+}
+
+// String returns the string representation of the buffer.
+func (b *starlarkIOBuffer) String() string { return "<io_buffer>" }
+
+// Type returns the type of the value.
+func (b *starlarkIOBuffer) Type() string { return "io_buffer" }
+
+// Freeze makes the value immutable.
+func (b *starlarkIOBuffer) Freeze() {}
+
+// Truth returns the truth value of the buffer.
+func (b *starlarkIOBuffer) Truth() starlark.Bool { return starlark.True }
+
+// Hash returns a hash value for the buffer.
+func (b *starlarkIOBuffer) Hash() (uint32, error) {
+	return 0, fmt.Errorf("unhashable type: %s", b.Type())
+}
+
+// Attr returns the value of a field or method.
+func (b *starlarkIOBuffer) Attr(name string) (starlark.Value, error) {
+	if val, ok := b.methods[name]; ok {
+		return val, nil
+	}
+
+	// starlark.NoSuchAttrError is handled by Starlark.
+	return nil, nil
+}
+
+// AttrNames returns a list of attribute names.
+func (b *starlarkIOBuffer) AttrNames() []string {
+	names := make([]string, 0, len(b.methods))
+
+	for name := range b.methods {
+		names = append(names, name)
+	}
+
+	return names
+}
+
 func flushStdoutLocal(thread *starlark.Thread) bool {
 	if v := thread.Local(starlarkVarFlushStdout); v != nil {
 		if flushStdoutVal, ok := v.(starlark.Value); ok {
@@ -95,8 +129,8 @@ func flushStdoutLocal(thread *starlark.Thread) bool {
 	return false
 }
 
-func makeReSearch(name string, content []byte) *starlark.Builtin {
-	return starlark.NewBuiltin(name, func(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+func makeReSearchMethod(content []byte) *starlark.Builtin {
+	return starlark.NewBuiltin("search", func(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
 		var pattern starlark.String
 		var group starlark.Value = starlark.None
 		var defaultValue starlark.Value = starlark.None
@@ -168,18 +202,38 @@ func evaluateCondition(attemptInfo attempt, expr string, stdinContent []byte, st
 		code = starlark.None
 	}
 
+	stdin := &starlarkIOBuffer{
+		methods: starlark.StringDict{
+			"search": makeReSearchMethod(stdinContent),
+		},
+	}
+
+	stdout := &starlarkIOBuffer{
+		methods: starlark.StringDict{
+			"flush": starlark.NewBuiltin("stdout.flush", func(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+				if err := starlark.UnpackPositionalArgs(b.Name(), args, kwargs, 0); err != nil {
+					return nil, err
+				}
+
+				thread.SetLocal(starlarkVarFlushStdout, starlark.True)
+
+				return starlark.None, nil
+			}),
+			"search": makeReSearchMethod(stdoutContent),
+		},
+	}
+
 	env := starlark.StringDict{
-		"exit":             starlark.NewBuiltin("exit", StarlarkExit),
-		"flush_stdout":     starlark.NewBuiltin("flush_stdout", StarlarkFlushStdout),
-		"inspect":          starlark.NewBuiltin("inspect", StarlarkInspect),
-		"re_search_stdin":  makeReSearch("re_search_stdin", stdinContent),
-		"re_search_stdout": makeReSearch("re_search_stdout", stdoutContent),
+		"exit":    starlark.NewBuiltin("exit", StarlarkExit),
+		"inspect": starlark.NewBuiltin("inspect", StarlarkInspect),
 
 		"attempt":             starlark.MakeInt(attemptInfo.Number),
 		"attempt_since_reset": starlark.MakeInt(attemptInfo.NumberSinceReset),
 		"code":                code,
 		"command_found":       starlark.Bool(attemptInfo.CommandFound),
 		"max_attempts":        starlark.MakeInt(attemptInfo.MaxAttempts),
+		"stdin":               stdin,
+		"stdout":              stdout,
 		"time":                starlark.Float(float64(attemptInfo.Duration) / float64(time.Second)),
 		"total_time":          starlark.Float(float64(attemptInfo.TotalTime) / float64(time.Second)),
 	}

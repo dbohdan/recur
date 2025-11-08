@@ -165,7 +165,7 @@ $ recur -c 'attempt == 3' sh -c 'echo "$RECUR_ATTEMPT"'
 $ recur -c 'attempt == 3' -O sh -c 'echo "$RECUR_ATTEMPT"'
 3
 
-$ recur -c 'flush_stdout() or attempt == 3' -O sh -c 'echo "$RECUR_ATTEMPT"'
+$ recur -c 'stdout.flush() or attempt == 3' -O sh -c 'echo "$RECUR_ATTEMPT"'
 1
 2
 3
@@ -175,16 +175,16 @@ Because the data are buffered in memory, `--hold-stdout` is not recommended for 
 
 ### Regular-expression matching
 
-You can use two built-in functions in your success condition to match regular expressions against a command's input or output:
+You can use methods on the built-in `stdin` and `stdout` objects in your success condition to match regular expressions against a command's input or output:
 
-- `re_search_stdin` — matches against standard input (requires `-I`/`--replay-stdin`)
-- `re_search_stdout` — matches against standard output (requires `-O`/`--hold-stdout`)
+- `stdin.search` — matches against standard input (requires `-I`/`--replay-stdin`)
+- `stdout.search` — matches against standard output (requires `-O`/`--hold-stdout`)
 
-Both functions use [Go regular expressions](https://pkg.go.dev/regexp) with [RE2 syntax](https://github.com/google/re2/wiki/Syntax).
-Without their respective command-line option (`-I`/`--replay-stdin` or `-O`/`--hold-stdout`), the functions match against an empty string.
+Both methods use [Go regular expressions](https://pkg.go.dev/regexp) with [RE2 syntax](https://github.com/google/re2/wiki/Syntax).
+Without their respective command-line option (`-I`/`--replay-stdin` or `-O`/`--hold-stdout`), the methods match against an empty string.
 
 Standard input and output are not available directly as Starlark strings to reduce memory usage.
-These functions provide the only way to access them in conditions.
+These methods provide the only way to access them in conditions.
 
 #### Matching standard input
 
@@ -192,7 +192,7 @@ The following example waits for the input to contain "ok" on the line after "sta
 
 ```none
 $ printf 'Status:\nOK\n' | recur \
-    --condition 're_search_stdin(r"(?im)status:\s*ok$")' \
+    --condition 'stdin.search(r"(?im)status:\s*ok$")' \
     --replay-stdin \
     cat \
     ;
@@ -206,7 +206,7 @@ The regular expression `(?im)status:\s*ok$` uses [RE2 inline flags](https://gith
 - `i` for case-insensitive matching
 - `m` for multiline mode (`$` matches the end of each line)
 
-The condition evaluates to true when `re_search_stdin` finds a match (returns a non-empty list) and false when no match is found (the return value is `None`).
+The condition evaluates to true when `stdin.search()` finds a match (returns a non-empty list) and false when no match is found (the return value is `None`).
 
 #### Matching standard output
 
@@ -214,7 +214,7 @@ This example extracts a status value from the command's output and validates it:
 
 ```none
 $ recur \
-    --condition 're_search_stdout(r"(?i)status:([^\n]+)", group=1, default="fail").strip().lower() != "fail"' \
+    --condition 'stdout.search(r"(?i)status:([^\n]+)", group=1, default="fail").strip().lower() != "fail"' \
     --hold-stdout \
     echo 'Status: OK' \
     ;
@@ -223,7 +223,7 @@ Status: OK
 
 In this condition:
 
-- `re_search_stdout(r"(?i)status:([^\n]+)", group=1, default="fail")` searches for `"status:"` followed by text on the same line
+- `stdout.search(r"(?i)status:([^\n]+)", group=1, default="fail")` searches for `"status:"` followed by text on the same line
   - `r"..."` disables the processing of backslash escapes like `\n` in the string
   - `group=1` extracts just the captured text (for example, `" OK"` with a leading space)
   - `default="fail"` returns `"fail"` if no match is found
@@ -281,6 +281,8 @@ You can use the following variables in the condition expression:
 - `command_found`: `bool` — whether the last command was found.
 - `max_attempts`: `int` — the value of the option `--attempts`.
   `--forever` sets it to -1.
+- `stdin`: `io_buffer` — an object that represents standard input.
+- `stdout`: `io_buffer` — an object that represents standard output.
 - `time`: `float` — the time the most recent attempt took, in seconds.
 - `total_time`: `float` — the time between the start of the first attempt and the end of the most recent, again in seconds.
 
@@ -288,19 +290,22 @@ recur defines custom functions:
 
 - `exit(code: int | None) -> None` — exit with the exit code.
   If `code` is `None`, exit with the exit code for a missing command (127).
-- `flush_stdout() -> None` — if recur is running with the option `-O`/`--hold-stdout`, recur will output the command's buffered standard output after evaluating the condition.
-  recur will print the standard output whether the condition is true or false and also if `exit` is called.
-  The function does nothing without the option `-O`/`--hold-stdout`.
 - `inspect(value: Any, *, prefix: str = "") -> Any` — log `value` prefixed by `prefix` and return `value`.
   This is useful for debugging.
-- `re_search_stdin(pattern: str, *, group: int | None = None, default: Any = None) -> Any` — match a [Go regular expression](https://pkg.go.dev/regexp) against standard input.
+
+The `stdin` and `stdout` objects have methods:
+
+- `stdin.search(pattern: str, *, group: int | None = None, default: Any = None) -> Any` — match a [Go regular expression](https://pkg.go.dev/regexp) against standard input.
   If `group` is not specified, the function returns a list of submatches (with the full match as the first element) or `default` if no match is found.
   If `group` is specified, it returns the given capture group or `default` if the group is not found.
-  This function requires the option `-I`/`--replay-stdin`.
-- `re_search_stdout(pattern: str, *, group: int | None = None, default: Any = None) -> Any` — match a Go regular expression against standard output.
+  This method requires the option `-I`/`--replay-stdin`.
+- `stdout.flush() -> None` — if recur is running with the option `-O`/`--hold-stdout`, recur will output the command's buffered standard output after evaluating the condition.
+  recur will print the standard output whether the condition is true or false and also if `exit` is called.
+  The method does nothing without the option `-O`/`--hold-stdout`.
+- `stdout.search(pattern: str, *, group: int | None = None, default: Any = None) -> Any` — match a Go regular expression against standard output.
   If `group` is not specified, the function returns a list of submatches (with the full match as the first element) or `default` if no match is found.
   If `group` is specified, it returns the given capture group or `default` if the group is not found.
-  This function requires the option `-O`/`--hold-stdout`.
+  This method requires the option `-O`/`--hold-stdout`.
 
 Regular expressions use the [RE2 syntax](https://github.com/google/re2/wiki/Syntax).
 
