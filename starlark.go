@@ -24,6 +24,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"regexp"
 	"time"
 
 	"go.starlark.net/starlark"
@@ -94,7 +95,70 @@ func flushStdoutLocal(thread *starlark.Thread) bool {
 	return false
 }
 
-func evaluateCondition(attemptInfo attempt, expr string) (bool, bool, error) {
+func makeReSearch(name string, content []byte) *starlark.Builtin {
+	return starlark.NewBuiltin(name, func(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+		var pattern starlark.String
+		var group starlark.Value = starlark.None
+		var defaultValue starlark.Value = starlark.None
+
+		if err := starlark.UnpackArgs(b.Name(), args, kwargs, "pattern", &pattern, "group?", &group, "default?", &defaultValue); err != nil {
+			return nil, err
+		}
+
+		if content == nil {
+			return defaultValue, nil
+		}
+
+		re, err := regexp.Compile(pattern.GoString())
+		if err != nil {
+			return nil, fmt.Errorf("invalid regexp pattern: %w", err)
+		}
+
+		matches := re.FindSubmatch(content)
+		if matches == nil {
+			return defaultValue, nil
+		}
+
+		// If group is not specified, return the list of matches.
+		if _, ok := group.(starlark.NoneType); ok {
+			starlarkMatches := make([]starlark.Value, len(matches))
+
+			for i, match := range matches {
+				if match == nil {
+					starlarkMatches[i] = starlark.None
+				} else {
+					starlarkMatches[i] = starlark.String(string(match))
+				}
+			}
+
+			return starlark.NewList(starlarkMatches), nil
+		}
+
+		// If group is specified, return the specified group.
+		groupInt, ok := group.(starlark.Int)
+		if !ok {
+			return nil, fmt.Errorf("group must be an integer")
+		}
+
+		groupIndex, ok := groupInt.Int64()
+		if !ok {
+			return nil, fmt.Errorf("group index too large")
+		}
+
+		if groupIndex < 0 || groupIndex >= int64(len(matches)) {
+			return defaultValue, nil
+		}
+
+		match := matches[groupIndex]
+		if match == nil {
+			return defaultValue, nil
+		}
+
+		return starlark.String(string(match)), nil
+	})
+}
+
+func evaluateCondition(attemptInfo attempt, expr string, stdinContent []byte, stdoutContent []byte) (bool, bool, error) {
 	thread := &starlark.Thread{Name: "condition"}
 
 	var code starlark.Value
@@ -105,9 +169,11 @@ func evaluateCondition(attemptInfo attempt, expr string) (bool, bool, error) {
 	}
 
 	env := starlark.StringDict{
-		"exit":         starlark.NewBuiltin("exit", StarlarkExit),
-		"flush_stdout": starlark.NewBuiltin("flush_stdout", StarlarkFlushStdout),
-		"inspect":      starlark.NewBuiltin("inspect", StarlarkInspect),
+		"exit":             starlark.NewBuiltin("exit", StarlarkExit),
+		"flush_stdout":     starlark.NewBuiltin("flush_stdout", StarlarkFlushStdout),
+		"inspect":          starlark.NewBuiltin("inspect", StarlarkInspect),
+		"re_search_stdin":  makeReSearch("re_search_stdin", stdinContent),
+		"re_search_stdout": makeReSearch("re_search_stdout", stdoutContent),
 
 		"attempt":             starlark.MakeInt(attemptInfo.Number),
 		"attempt_since_reset": starlark.MakeInt(attemptInfo.NumberSinceReset),

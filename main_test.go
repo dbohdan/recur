@@ -315,6 +315,69 @@ func TestConditionInspectWithPrefix(t *testing.T) {
 	}
 }
 
+func TestConditionReSearchStdin(t *testing.T) {
+	t.Run("simple match", func(t *testing.T) {
+		_, _, err := runCommandWithStdin("hello world", "-I", "-c", `re_search_stdin("world")`, commandCat)
+
+		if err != nil {
+			t.Errorf("Expected no error, got %v", err)
+		}
+	})
+
+	t.Run("capture groups", func(t *testing.T) {
+		_, _, err := runCommandWithStdin("hello world", "-I", "-c", `re_search_stdin("w(o)rld")[1] == "o"`, commandCat)
+
+		if err != nil {
+			t.Errorf("Expected no error, got %v", err)
+		}
+	})
+
+	t.Run("group and default", func(t *testing.T) {
+		_, _, err := runCommandWithStdin(
+			"hello world",
+			"-I",
+			"-c",
+			`re_search_stdin("w(o)rld", group=1) == "o" and re_search_stdin("foo", group=1, default="bar") == "bar"`,
+			commandCat,
+		)
+
+		if err != nil {
+			t.Errorf("Expected no error, got %v", err)
+		}
+	})
+}
+
+func TestConditionReSearchStdout(t *testing.T) {
+	t.Run("simple match", func(t *testing.T) {
+		_, _, err := runCommand("-O", "-c", `re_search_stdout("hello")`, commandHello)
+
+		if err != nil {
+			t.Errorf("Expected no error, got %v", err)
+		}
+	})
+
+	t.Run("capture groups", func(t *testing.T) {
+		_, _, err := runCommand("-O", "-c", `re_search_stdout("h(e)llo")[1] == "e"`, commandHello)
+
+		if err != nil {
+			t.Errorf("Expected no error, got %v", err)
+		}
+	})
+
+	t.Run("group and default", func(t *testing.T) {
+		_, _, err := runCommand(
+			"-O",
+			"-c",
+			`re_search_stdout("h(e)llo", group=1) == "e" and re_search_stdout("foo", group=1, default="bar") == "bar"`,
+			commandHello,
+		)
+
+		if err != nil {
+			t.Errorf("Expected no error, got %v", err)
+		}
+	})
+}
+
 func TestConditionTimeAndTotalTime(t *testing.T) {
 	stdout, _, _ := runCommand("--condition", "total_time > time", commandSleep, "0.1")
 

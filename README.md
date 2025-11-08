@@ -112,7 +112,7 @@ The "duration" arguments take [Go duration strings](https://pkg.go.dev/time#Pars
 for example, `0`, `100ms`, `2.5s`, `0.5m`, or `1h`.
 The value of `-j`/`--jitter` must be either one duration string or two joined with a comma, like `1s,2s`.
 
-Setting the delay (`-d`/`--delay`) increases the maximum delay (`-m`/`--max-delay`) to that value when the maximum delay is shorter.
+If the maximum delay (`-m`/`--max-delay`) is shorter than the constant delay (`-d`/`--delay`), setting the constant delay will automatically increase the maximum delay to match it.
 Use `-m`/`--max-delay` after `-d`/`--delay` if you want a shorter maximum delay.
 
 The following recur options run the command `foo --config bar.cfg` indefinitely.
@@ -129,7 +129,7 @@ recur exits with the code 255.
 
 ### Standard input
 
-By default, the command run by recur inherits recur's [standard input](https://en.wikipedia.org/wiki/Standard_streams#Standard_input_(stdin)).
+By default, the command run by recur inherits its [standard input](https://en.wikipedia.org/wiki/Standard_streams#Standard_input_(stdin)).
 This means that if standard input is a terminal, every attempt can read interactively from the terminal.
 If standard input is a pipe or a redirected file, the data are consumed on the first attempt; later attempts will see an immediate [EOF](https://en.wikipedia.org/wiki/End-of-file).
 
@@ -153,7 +153,7 @@ Because the data are buffered in memory, `--replay-stdin` is not recommended for
 ### Standard output
 
 The command's [standard output](https://en.wikipedia.org/wiki/Standard_streams#Standard_output_(stdout)) is passed through to recur's standard output by default.
-To prevent this and only print the output of the final, successful attempt if there is a successful attempt, use the option `-O`/`--hold-stdout`.
+To prevent this and only print the output of the final, successful attempt (if there is one), use the option `-O`/`--hold-stdout`.
 With this option, recur buffers the command's stdout in memory and only prints it if the success condition is met or the condition expression calls `flush_stdout`.
 
 ```none
@@ -172,6 +172,62 @@ $ recur -c 'flush_stdout() or attempt == 3' -O sh -c 'echo "$RECUR_ATTEMPT"'
 ```
 
 Because the data are buffered in memory, `--hold-stdout` is not recommended for commands that produce very large output.
+
+### Regular-expression matching
+
+You can use two built-in functions in your success condition to match regular expressions against a command's input or output:
+
+- `re_search_stdin` — matches against standard input (requires `-I`/`--replay-stdin`)
+- `re_search_stdout` — matches against standard output (requires `-O`/`--hold-stdout`)
+
+Both functions use [Go regular expressions](https://pkg.go.dev/regexp) with [RE2 syntax](https://github.com/google/re2/wiki/Syntax).
+Without their respective command-line option (`-I`/`--replay-stdin` or `-O`/`--hold-stdout`), the functions match against an empty string.
+
+Standard input and output are not available directly as Starlark strings to reduce memory usage.
+These functions provide the only way to access them in conditions.
+
+#### Matching standard input
+
+The following example waits for the input to contain "ok" on the line after "status:":
+
+```none
+$ printf 'Status:\nOK\n' | recur \
+    --condition 're_search_stdin(r"(?im)status:\s*ok$")' \
+    --replay-stdin \
+    cat \
+    ;
+Status:
+OK
+```
+
+`r"..."` disables the processing of backslash escapes in the string.
+It is necessary because `\s` is not a valid backslash escape.
+The regular expression `(?im)status:\s*ok$` uses [RE2 inline flags](https://github.com/google/re2/wiki/Syntax#:~:text=case-insensitive):
+- `i` for case-insensitive matching
+- `m` for multiline mode (`$` matches the end of each line)
+
+The condition evaluates to true when `re_search_stdin` finds a match (returns a non-empty list) and false when no match is found (the return value is `None`).
+
+#### Matching standard output
+
+This example extracts a status value from the command's output and validates it:
+
+```none
+$ recur \
+    --condition 're_search_stdout(r"(?i)status:([^\n]+)", group=1, default="fail").strip().lower() != "fail"' \
+    --hold-stdout \
+    echo 'Status: OK' \
+    ;
+Status: OK
+```
+
+In this condition:
+
+- `re_search_stdout(r"(?i)status:([^\n]+)", group=1, default="fail")` searches for `"status:"` followed by text on the same line
+  - `r"..."` disables the processing of backslash escapes like `\n` in the string
+  - `group=1` extracts just the captured text (for example, `" OK"` with a leading space)
+  - `default="fail"` returns `"fail"` if no match is found
+- `.strip().lower()` normalizes the extracted value
 
 ### Environment variables
 
@@ -201,10 +257,10 @@ Attempt 10 of 10
 recur supports a limited form of scripting.
 You can define the success condition using an expression in [Starlark](https://laurent.le-brun.eu/blog/an-overview-of-starlark), a small scripting language derived from Python.
 The default condition is `code == 0`.
-It means recur will stop retrying when the exit code of the command is zero.
+This means recur will stop retrying when the exit code of the command is zero.
 
 The condition expression can evaluate to any value.
-`False`, `None`, numeric zero (e.g., `0`, `0.0`), and empty collections (e.g., `""`, `()`, `[]`, `{}`) are considered false.
+`False`, `None`, numeric zero (`0`, `0.0`), and empty collections (`""`, `()`, `[]`, `{}`) are considered false.
 All other values are considered true.
 
 If you know Python, you can quickly start writing recur conditions in Starlark.
@@ -232,11 +288,21 @@ recur defines custom functions:
 
 - `exit(code: int | None) -> None` — exit with the exit code.
   If `code` is `None`, exit with the exit code for a missing command (255).
-- `flush_stdout() -> None` — if recur is running with the option `-O`/`--hold-stdout`, recur will output the command's buffered standard output when it has finished evaluating the condition.
+- `flush_stdout() -> None` — if recur is running with the option `-O`/`--hold-stdout`, recur will output the command's buffered standard output after evaluating the condition.
   recur will print the standard output whether the condition is true or false and also if `exit` is called.
   The function does nothing without the option `-O`/`--hold-stdout`.
 - `inspect(value: Any, *, prefix: str = "") -> Any` — log `value` prefixed by `prefix` and return `value`.
   This is useful for debugging.
+- `re_search_stdin(pattern: str, *, group: int | None = None, default: Any = None) -> Any` — match a [Go regular expression](https://pkg.go.dev/regexp) against standard input.
+  If `group` is not specified, the function returns a list of submatches (with the full match as the first element) or `default` if no match is found.
+  If `group` is specified, it returns the given capture group or `default` if the group is not found.
+  This function requires the option `-I`/`--replay-stdin`.
+- `re_search_stdout(pattern: str, *, group: int | None = None, default: Any = None) -> Any` — match a Go regular expression against standard output.
+  If `group` is not specified, the function returns a list of submatches (with the full match as the first element) or `default` if no match is found.
+  If `group` is specified, it returns the given capture group or `default` if the group is not found.
+  This function requires the option `-O`/`--hold-stdout`.
+
+Regular expressions use the [RE2 syntax](https://github.com/google/re2/wiki/Syntax).
 
 The `exit` function allows you to override the default behavior of returning the last command's exit code.
 For example, you can make recur exit with success when the command fails.
@@ -247,7 +313,7 @@ recur --condition 'code != 0 and exit(0)' sh -c 'exit 1'
 recur --condition 'False if code == 0 else exit(0)' sh -c 'exit 1'
 ```
 
-In the following example we stop early and do not retry when the command's exit code indicates incorrect usage or a problem with the installation.
+In the following example, we stop early and do not retry when the command's exit code indicates incorrect usage or a problem with the installation.
 
 ```shell
 recur --condition 'code == 0 or (code in (1, 2, 3, 4) and exit(code))' curl "$url"
