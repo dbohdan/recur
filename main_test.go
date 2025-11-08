@@ -215,6 +215,26 @@ func TestStopOnSuccess(t *testing.T) {
 	}
 }
 
+func TestConditionTruthy(t *testing.T) {
+	_, _, err := runCommand("--condition", "'a string'", commandHello)
+
+	if err != nil {
+		t.Errorf("Expected no error, got %v", err)
+	}
+}
+
+func TestConditionFalsy(t *testing.T) {
+	_, stderr, err := runCommand("-a", "2", "--condition", `""`, commandExit99)
+
+	if err == nil {
+		t.Error("Expected an error, got nil")
+	}
+
+	if matched, _ := regexp.MatchString("maximum 2 attempts reached", stderr); !matched {
+		t.Error("Expected 'maximum 2 attempts reached' in stderr")
+	}
+}
+
 func TestConditionAttemptForever(t *testing.T) {
 	stdout, _, _ := runCommand("--condition", "attempt == 5", "--forever", commandHello)
 
@@ -232,7 +252,7 @@ func TestConditionAttemptNegative(t *testing.T) {
 }
 
 func TestConditionExitIfCode(t *testing.T) {
-	_, _, err := runCommand("--condition", "exit(0) if code == 99 else 'fail'", commandExit99)
+	_, _, err := runCommand("--condition", "exit(0) if code == 99 else False", commandExit99)
 
 	if err != nil {
 		t.Errorf("Expected no error, got %v", err)

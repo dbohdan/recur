@@ -203,6 +203,10 @@ You can define the success condition using an expression in [Starlark](https://l
 The default condition is `code == 0`.
 It means recur will stop retrying when the exit code of the command is zero.
 
+The condition expression can evaluate to any value.
+`False`, `None`, numeric zero (e.g., `0`, `0.0`), and empty collections (e.g., `""`, `()`, `[]`, `{}`) are considered false.
+All other values are considered true.
+
 If you know Python, you can quickly start writing recur conditions in Starlark.
 The most significant differences between Starlark and Python for this purpose are:
 

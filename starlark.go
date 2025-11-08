@@ -129,10 +129,6 @@ func evaluateCondition(attemptInfo attempt, expr string) (bool, bool, error) {
 		return false, false, err
 	}
 
-	if val.Type() != "bool" {
-		return false, false, fmt.Errorf("condition must return a boolean, got %s", val.Type())
-	}
-
 	success := bool(val.Truth())
 	flushStdout = flushStdout || success
 

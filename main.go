@@ -49,7 +49,7 @@ const (
 	exitCodeCommandNotFound = 255
 	exitCodeError           = -1
 	maxVerboseLevel         = 3
-	version                 = "2.5.0"
+	version                 = "3.0.0"
 )
 
 type attempt struct {
