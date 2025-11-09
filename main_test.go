@@ -378,6 +378,37 @@ func TestConditionReSearchStdout(t *testing.T) {
 	})
 }
 
+func TestConditionReSearchStderr(t *testing.T) {
+	t.Run("simple match", func(t *testing.T) {
+		_, _, err := runCommand("-E", "-c", `stderr.search("hello")`, commandHello, "--stderr")
+
+		if err != nil {
+			t.Errorf("Expected no error, got %v", err)
+		}
+	})
+
+	t.Run("capture groups", func(t *testing.T) {
+		_, _, err := runCommand("-E", "-c", `stderr.search("h(e)llo")[1] == "e"`, commandHello, "--stderr")
+
+		if err != nil {
+			t.Errorf("Expected no error, got %v", err)
+		}
+	})
+
+	t.Run("group and default", func(t *testing.T) {
+		_, _, err := runCommand(
+			"-E",
+			"-c",
+			`stderr.search("h(e)llo", group=1) == "e" and stderr.search("foo", group=1, default="bar") == "bar"`,
+			commandHello, "--stderr",
+		)
+
+		if err != nil {
+			t.Errorf("Expected no error, got %v", err)
+		}
+	})
+}
+
 func TestConditionTimeAndTotalTime(t *testing.T) {
 	stdout, _, _ := runCommand("--condition", "total_time > time", commandSleep, "0.1")
 
@@ -485,6 +516,50 @@ func TestHoldStdout(t *testing.T) {
 		stdout, _, _ := runCommand("-a", "3", "-c", "stdout.flush() or exit(0)", "-O", commandHello)
 		if stdout != "hello\n" {
 			t.Errorf("Expected one instance of 'hello', got %q", stdout)
+		}
+	})
+}
+
+func TestHoldStderr(t *testing.T) {
+	t.Run("no holding stderr", func(t *testing.T) {
+		_, stderr, _ := runCommand("-a", "3", "-c", "False", commandHello, "--stderr")
+		if count := strings.Count(stderr, "hello"); count != 3 {
+			t.Errorf("Expected 3 instances of 'hello', got %d", count)
+		}
+	})
+
+	t.Run("holding stderr, failure", func(t *testing.T) {
+		_, stderr, _ := runCommand("-a", "3", "-c", "False", "-E", commandHello, "--stderr")
+		if stderr != "recur [00:00:00.0]: maximum 3 attempts reached\n" {
+			t.Errorf("Expected empty stderr, got %q", stderr)
+		}
+	})
+
+	t.Run("holding stderr, success", func(t *testing.T) {
+		_, stderr, _ := runCommand("-a", "3", "-c", "attempt == 2", "-E", commandHello, "--stderr")
+		if stderr != "hello\n" {
+			t.Errorf("Expected one instance of 'hello', got %q", stderr)
+		}
+	})
+
+	t.Run("flushing stderr, failure", func(t *testing.T) {
+		_, stderr, _ := runCommand("-a", "3", "-c", "stderr.flush() or False", "-E", commandHello, "--stderr")
+		if count := strings.Count(stderr, "hello"); count != 3 {
+			t.Errorf("Expected 3 instances of 'hello', got %d", count)
+		}
+	})
+
+	t.Run("flushing stderr, success", func(t *testing.T) {
+		_, stderr, _ := runCommand("-a", "3", "-c", "stderr.flush() or attempt == 2", "-E", commandHello, "--stderr")
+		if count := strings.Count(stderr, "hello"); count != 2 {
+			t.Errorf("Expected 2 instances of 'hello', got %d", count)
+		}
+	})
+
+	t.Run("flushing stderr, exit", func(t *testing.T) {
+		_, stderr, _ := runCommand("-a", "3", "-c", "stderr.flush() or exit(0)", "-E", commandHello, "--stderr")
+		if stderr != "hello\n" {
+			t.Errorf("Expected one instance of 'hello', got %q", stderr)
 		}
 	})
 }

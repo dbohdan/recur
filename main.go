@@ -88,6 +88,7 @@ type retryConfig struct {
 	Condition   string
 	Fibonacci   bool
 	FixedDelay  interval
+	HoldStderr  bool
 	HoldStdout  bool
 	MaxAttempts int
 	RandomDelay interval
@@ -162,12 +163,12 @@ func parseInterval(s string) (interval, error) {
 	return interval{Start: start, End: end}, nil
 }
 
-func executeCommand(command string, args []string, timeout time.Duration, envVars []string, stdinContent []byte, holdStdout bool) (commandResult, []byte) {
+func executeCommand(command string, args []string, timeout time.Duration, envVars []string, stdinContent []byte, holdStdout bool, holdStderr bool) (commandResult, []byte, []byte) {
 	if _, err := exec.LookPath(command); err != nil {
 		return commandResult{
 			Status:   statusNotFound,
 			ExitCode: exitCodeCommandNotFound,
-		}, nil
+		}, nil, nil
 	}
 
 	ctx := context.Background()
@@ -178,18 +179,26 @@ func executeCommand(command string, args []string, timeout time.Duration, envVar
 	}
 
 	cmd := exec.CommandContext(ctx, command, args...)
-	var stdoutBuffer bytes.Buffer
+	var stdoutBuffer, stderrBuffer bytes.Buffer
+
 	if holdStdout {
 		cmd.Stdout = &stdoutBuffer
 	} else {
 		cmd.Stdout = os.Stdout
 	}
-	cmd.Stderr = os.Stderr
+
+	if holdStderr {
+		cmd.Stderr = &stderrBuffer
+	} else {
+		cmd.Stderr = os.Stderr
+	}
+
 	if stdinContent == nil {
 		cmd.Stdin = os.Stdin
 	} else {
 		cmd.Stdin = bytes.NewReader(stdinContent)
 	}
+
 	cmd.Env = append(os.Environ(), envVars...)
 
 	err := cmd.Run()
@@ -198,7 +207,7 @@ func executeCommand(command string, args []string, timeout time.Duration, envVar
 			return commandResult{
 				Status:   statusTimeout,
 				ExitCode: exitCodeError,
-			}, stdoutBuffer.Bytes()
+			}, stdoutBuffer.Bytes(), stderrBuffer.Bytes()
 		}
 
 		var exitErr *exec.ExitError
@@ -206,19 +215,19 @@ func executeCommand(command string, args []string, timeout time.Duration, envVar
 			return commandResult{
 				Status:   statusFinished,
 				ExitCode: exitErr.ExitCode(),
-			}, stdoutBuffer.Bytes()
+			}, stdoutBuffer.Bytes(), stderrBuffer.Bytes()
 		}
 
 		return commandResult{
 			Status:   statusUnknownError,
 			ExitCode: exitCodeError,
-		}, stdoutBuffer.Bytes()
+		}, stdoutBuffer.Bytes(), stderrBuffer.Bytes()
 	}
 
 	return commandResult{
 		Status:   statusFinished,
 		ExitCode: cmd.ProcessState.ExitCode(),
-	}, stdoutBuffer.Bytes()
+	}, stdoutBuffer.Bytes(), stderrBuffer.Bytes()
 }
 
 func fib(n int) float64 {
@@ -263,7 +272,7 @@ func formatDuration(d time.Duration) string {
 
 func retry(config retryConfig, stdinContent []byte) (int, error) {
 	var cmdResult commandResult
-	var stdoutContent []byte
+	var stdoutContent, stderrContent []byte
 	var startTime time.Time
 	var totalTime time.Duration
 
@@ -288,7 +297,7 @@ func retry(config retryConfig, stdinContent []byte) (int, error) {
 			fmt.Sprintf("%s=%d", envVarAttemptSinceReset, attemptSinceReset),
 			fmt.Sprintf("%s=%d", envVarMaxAttempts, config.MaxAttempts),
 		}
-		cmdResult, stdoutContent = executeCommand(config.Command, config.Args, config.Timeout, envVars, stdinContent, config.HoldStdout)
+		cmdResult, stdoutContent, stderrContent = executeCommand(config.Command, config.Args, config.Timeout, envVars, stdinContent, config.HoldStdout, config.HoldStderr)
 
 		attemptEnd := time.Now()
 		attemptDuration := attemptEnd.Sub(attemptStart)
@@ -321,9 +330,12 @@ func retry(config retryConfig, stdinContent []byte) (int, error) {
 			TotalTime:        totalTime,
 		}
 
-		success, flushStdout, err := evaluateCondition(attemptInfo, config.Condition, stdinContent, stdoutContent)
-		if flushStdout {
+		evalResult, err := evaluateCondition(attemptInfo, config.Condition, stdinContent, stdoutContent, stderrContent)
+		if evalResult.FlushStdout {
 			os.Stdout.Write(stdoutContent)
+		}
+		if evalResult.FlushStderr {
+			os.Stderr.Write(stderrContent)
 		}
 		if err != nil {
 			var exitErr *exitRequestError
@@ -334,7 +346,7 @@ func retry(config retryConfig, stdinContent []byte) (int, error) {
 			return 1, fmt.Errorf("condition evaluation failed: %w", err)
 		}
 
-		if success {
+		if evalResult.Success {
 			return cmdResult.ExitCode, nil
 		}
 
@@ -357,7 +369,7 @@ func wrapForTerm(s string) string {
 
 func usage(w io.Writer) {
 	s := fmt.Sprintf(
-		`Usage: %s [-h] [-V] [-a <attempts>] [-b <backoff>] [-c <condition>] [-d <delay>] [-F] [-f] [-I] [-j <jitter>] [-m <max-delay>] [-O] [-r <reset-time>] [-t <timeout>] [-v] [--] <command> [<arg> ...]`,
+		`Usage: %s [-h] [-V] [-a <attempts>] [-b <backoff>] [-c <condition>] [-d <delay>] [-E] [-F] [-f] [-I] [-j <jitter>] [-m <max-delay>] [-O] [-r <reset-time>] [-t <timeout>] [-v] [--] <command> [<arg> ...]`,
 		filepath.Base(os.Args[0]),
 	)
 
@@ -396,6 +408,9 @@ Options:
 
   -d, --delay %v
           Constant delay (duration)
+
+  -E, --hold-stderr
+          Buffer standard error for each attempt and only print it on success
 
   -F, --fib
           Add Fibonacci backoff
@@ -553,6 +568,9 @@ func parseArgs() retryConfig {
 
 		case "-O", "--hold-stdout":
 			config.HoldStdout = true
+
+		case "-E", "--hold-stderr":
+			config.HoldStderr = true
 
 		case "-r", "--reset":
 			value := nextArg(arg)

@@ -32,8 +32,15 @@ import (
 )
 
 const (
+	starlarkVarFlushStderr = "_flush_stderr"
 	starlarkVarFlushStdout = "_flush_stdout"
 )
+
+type conditionEvalResult struct {
+	Success     bool
+	FlushStdout bool
+	FlushStderr bool
+}
 
 func StarlarkExit(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
 	var code starlark.Value
@@ -119,17 +126,29 @@ func (b *starlarkIOBuffer) AttrNames() []string {
 	return names
 }
 
-func flushStdoutLocal(thread *starlark.Thread) bool {
-	if v := thread.Local(starlarkVarFlushStdout); v != nil {
-		if flushStdoutVal, ok := v.(starlark.Value); ok {
-			return flushStdoutVal == starlark.True
+func flushLocal(thread *starlark.Thread, varName string) bool {
+	if v := thread.Local(varName); v != nil {
+		if flushVal, ok := v.(starlark.Value); ok {
+			return flushVal == starlark.True
 		}
 	}
 
 	return false
 }
 
-func makeReSearchMethod(content []byte) *starlark.Builtin {
+func makeFlushMethod(varName string) *starlark.Builtin {
+	return starlark.NewBuiltin("flush", func(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+		if err := starlark.UnpackPositionalArgs(b.Name(), args, kwargs, 0); err != nil {
+			return nil, err
+		}
+
+		thread.SetLocal(varName, starlark.True)
+
+		return starlark.None, nil
+	})
+}
+
+func makeSearchMethod(content []byte) *starlark.Builtin {
 	return starlark.NewBuiltin("search", func(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
 		var pattern starlark.String
 		var group starlark.Value = starlark.None
@@ -192,7 +211,7 @@ func makeReSearchMethod(content []byte) *starlark.Builtin {
 	})
 }
 
-func evaluateCondition(attemptInfo attempt, expr string, stdinContent []byte, stdoutContent []byte) (bool, bool, error) {
+func evaluateCondition(attemptInfo attempt, expr string, stdinContent []byte, stdoutContent []byte, stderrContent []byte) (conditionEvalResult, error) {
 	thread := &starlark.Thread{Name: "condition"}
 
 	var code starlark.Value
@@ -204,22 +223,21 @@ func evaluateCondition(attemptInfo attempt, expr string, stdinContent []byte, st
 
 	stdin := &starlarkIOBuffer{
 		methods: starlark.StringDict{
-			"search": makeReSearchMethod(stdinContent),
+			"search": makeSearchMethod(stdinContent),
 		},
 	}
 
 	stdout := &starlarkIOBuffer{
 		methods: starlark.StringDict{
-			"flush": starlark.NewBuiltin("stdout.flush", func(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
-				if err := starlark.UnpackPositionalArgs(b.Name(), args, kwargs, 0); err != nil {
-					return nil, err
-				}
+			"flush":  makeFlushMethod(starlarkVarFlushStdout),
+			"search": makeSearchMethod(stdoutContent),
+		},
+	}
 
-				thread.SetLocal(starlarkVarFlushStdout, starlark.True)
-
-				return starlark.None, nil
-			}),
-			"search": makeReSearchMethod(stdoutContent),
+	stderr := &starlarkIOBuffer{
+		methods: starlark.StringDict{
+			"flush":  makeFlushMethod(starlarkVarFlushStderr),
+			"search": makeSearchMethod(stderrContent),
 		},
 	}
 
@@ -232,6 +250,7 @@ func evaluateCondition(attemptInfo attempt, expr string, stdinContent []byte, st
 		"code":                code,
 		"command_found":       starlark.Bool(attemptInfo.CommandFound),
 		"max_attempts":        starlark.MakeInt(attemptInfo.MaxAttempts),
+		"stderr":              stderr,
 		"stdin":               stdin,
 		"stdout":              stdout,
 		"time":                starlark.Float(float64(attemptInfo.Duration) / float64(time.Second)),
@@ -239,18 +258,27 @@ func evaluateCondition(attemptInfo attempt, expr string, stdinContent []byte, st
 	}
 
 	val, err := starlark.EvalOptions(syntax.LegacyFileOptions(), thread, "", expr, env)
-	flushStdout := flushStdoutLocal(thread)
+	flushStdout := flushLocal(thread, starlarkVarFlushStdout)
+	flushStderr := flushLocal(thread, starlarkVarFlushStderr)
 	if err != nil {
 		var exitErr *exitRequestError
 		if errors.As(err, &exitErr) {
-			return false, flushStdout, exitErr
+			return conditionEvalResult{
+				FlushStdout: flushStdout,
+				FlushStderr: flushStderr,
+			}, exitErr
 		}
 
-		return false, false, err
+		return conditionEvalResult{}, err
 	}
 
 	success := bool(val.Truth())
 	flushStdout = flushStdout || success
+	flushStderr = flushStderr || success
 
-	return success, flushStdout, nil
+	return conditionEvalResult{
+		Success:     success,
+		FlushStdout: flushStdout,
+		FlushStderr: flushStderr,
+	}, nil
 }

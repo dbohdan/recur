@@ -1,7 +1,19 @@
 package main
 
-import "fmt"
+import (
+	"flag"
+	"fmt"
+	"os"
+)
 
 func main() {
-	fmt.Printf("hello\n")
+	var toStderr bool
+	flag.BoolVar(&toStderr, "stderr", false, "print message to stderr")
+	flag.Parse()
+
+	if toStderr {
+		fmt.Fprintf(os.Stderr, "hello\n")
+	} else {
+		fmt.Printf("hello\n")
+	}
 }
