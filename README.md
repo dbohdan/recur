@@ -27,7 +27,7 @@ brew install recur
 
 ### Go
 
-Install Go, then run the following command:
+Install Go, then run:
 
 ```shell
 go install dbohdan.com/recur/v3@latest
@@ -111,11 +111,11 @@ Fibonacci backoff (duration)
 ```
 <!-- END USAGE -->
 
-The "duration" arguments take [Go duration strings](https://pkg.go.dev/time#ParseDuration);
+Duration arguments take [Go duration strings](https://pkg.go.dev/time#ParseDuration);
 for example, `0`, `100ms`, `2.5s`, `0.5m`, or `1h`.
-The value of `-j`/`--jitter` must be either one duration string or two joined with a comma, like `1s,2s`.
+The value of `-j`/`--jitter` must be either a single duration or two durations joined with a comma, like `1s,2s`.
 
-If the maximum delay (`-m`/`--max-delay`) is shorter than the constant delay (`-d`/`--delay`), setting the constant delay will automatically increase the maximum delay to match it.
+If the maximum delay (`-m`/`--max-delay`) is shorter than the constant delay (`-d`/`--delay`), the constant delay will automatically increase the maximum delay to match it.
 Use `-m`/`--max-delay` after `-d`/`--delay` if you want a shorter maximum delay.
 
 The following recur options run the command `foo --config bar.cfg` indefinitely.
@@ -127,17 +127,18 @@ recur --backoff 2s --condition False --forever --max-delay 1m --reset 5m foo --c
 ```
 
 recur exits with the last command's exit code unless the user overrides this in the condition.
-When the command is not found during the last attempt,
-recur exits with the code 127.
+When the command is not found during the last attempt, recur exits with code 127.
+recur exits with code 124 on timeout and 255 when there is an internal error.
 
 ### Standard input
 
 By default, the command run by recur inherits its [standard input](https://en.wikipedia.org/wiki/Standard_streams#Standard_input_(stdin)).
 This means that if standard input is a terminal, every attempt can read interactively from the terminal.
-If standard input is a pipe or a redirected file, the data is consumed on the first attempt; later attempts will see an immediate [EOF](https://en.wikipedia.org/wiki/End-of-file).
+If standard input is a pipe or redirected file, the data is consumed on the first attempt;
+later attempts see an immediate [EOF](https://en.wikipedia.org/wiki/End-of-file).
 
-To feed the command the same data every time, use the option `-I`/`--replay-stdin`.
-With this option, recur reads its entire stdin into memory and replays the buffer on each attempt.
+To feed the command the same data on each attempt, use the `-I`/`--replay-stdin` option.
+With this option, recur reads its entire stdin into memory and replays it on each attempt.
 
 ```none
 $ echo hi | recur -a 3 -c False cat
@@ -156,8 +157,9 @@ Because the data is buffered in memory, `--replay-stdin` is not recommended for 
 ### Standard output and standard error
 
 The command's [standard output](https://en.wikipedia.org/wiki/Standard_streams#Standard_output_(stdout)) and [standard error](https://en.wikipedia.org/wiki/Standard_streams#Standard_error_(stderr)) are passed through to recur's standard output and standard error by default.
-To prevent this and only print the output of the final, successful attempt (if there is one), use the option `-O`/`--hold-stdout` for standard output or `-E`/`--hold-stderr` for standard error.
-With these options, recur buffers the command's stdout/stderr in memory and only prints it if the success condition is met or the condition expression calls `stdout.flush()`/`stderr.flush()`.
+To buffer standard output and only print it on success, use `-O`/`--hold-stdout`;
+use `-E`/`--hold-stderr` for standard error.
+With these options, recur buffers the command's stdout or stderr and only prints it if the success condition is met or the condition expression calls `stdout.flush()` or `stderr.flush()`.
 
 ```none
 $ recur -c 'attempt == 3' sh -c 'echo "$RECUR_ATTEMPT"'
@@ -174,7 +176,7 @@ $ recur -c 'stdout.flush() or attempt == 3' -O sh -c 'echo "$RECUR_ATTEMPT"'
 3
 ```
 
-The option `-E`/`--hold-stderr` and the method `stderr.flush()` work similarly for standard error.
+The `-E`/`--hold-stderr` option and `stderr.flush()` method work similarly for standard error.
 
 Because the data is buffered in memory, `--hold-stdout` and `--hold-stderr` are not recommended for commands that produce very large output.
 
@@ -182,16 +184,16 @@ Because the data is buffered in memory, `--hold-stdout` and `--hold-stderr` are 
 
 You can use methods on the built-in `stdin`, `stdout`, and `stderr` objects in your success condition to match regular expressions against a command's input or output:
 
-- `stdin.search` — matches against standard input (requires `-I`/`--replay-stdin`)
-- `stdout.search` — matches against standard output (requires `-O`/`--hold-stdout`)
-- `stderr.search` — matches against standard error (requires `-E`/`--hold-stderr`)
+- `stdin.search()` — matches against standard input (requires `-I`/`--replay-stdin`)
+- `stdout.search()` — matches against standard output (requires `-O`/`--hold-stdout`)
+- `stderr.search()` — matches against standard error (requires `-E`/`--hold-stderr`)
 
 Both methods use [Go regular expressions](https://pkg.go.dev/regexp) with the [RE2 syntax](https://github.com/google/re2/wiki/Syntax).
 
-The `stdin`, `stdout`, and `stderr` objects are `None` without their respective command-line option (`-I`/`--replay-stdin`, `-O`/`--hold-stdout`, or `-E`/`--hold-stderr`).
-Attempting to call methods on `None` will result in an error.
+The `stdin`, `stdout`, and `stderr` objects are `None` without their respective command-line options (`-I`/`--replay-stdin`, `-O`/`--hold-stdout`, or `-E`/`--hold-stderr`).
+Calling methods on them will result in an error.
 
-Standard input, output, and error are not available directly as Starlark strings to reduce memory usage.
+Standard input, standard output, and standard error are not available directly as Starlark strings to reduce memory usage.
 These methods provide the only way to access them in conditions.
 
 #### Matching standard input
@@ -216,7 +218,7 @@ The regular expression `(?im)status:\s*done$` uses [RE2 inline flags](https://gi
 
 The condition evaluates to true when `stdin.search()` finds a match (returns a non-empty list) and false when no match is found (the return value is `None`).
 
-The contents of standard input is perhaps of limited use for retring a command because standard input is read once and never changes.
+Standard input is perhaps of limited use for retrying a command because it is read once and never changes.
 However, it can be used to exit early.
 
 #### Matching standard output and standard error
@@ -244,8 +246,7 @@ Matching against standard error with `stderr.search` works similarly.
 
 ### Environment variables
 
-recur sets the environment variable `RECUR_ATTEMPT` for the command it runs to the current attempt number.
-This way the command can access the attempt counter.
+recur sets the environment variable `RECUR_ATTEMPT` to the current attempt number so the command can access it.
 recur also sets `RECUR_MAX_ATTEMPTS` to the value of `-a`/`--attempts`
 and `RECUR_ATTEMPT_SINCE_RESET` to the attempt number since exponential and Fibonacci backoff were reset.
 
@@ -270,7 +271,7 @@ Attempt 10 of 10
 recur supports a limited form of scripting.
 You can define the success condition using an expression in [Starlark](https://laurent.le-brun.eu/blog/an-overview-of-starlark), a small scripting language derived from Python.
 The default condition is `code == 0`.
-This means recur will stop retrying when the exit code of the command is zero.
+This means recur stops retrying when the command exits with code zero.
 
 The condition expression can evaluate to any value.
 `False`, `None`, numeric zero (`0`, `0.0`), and empty collections (`""`, `()`, `[]`, `{}`) are considered false.
@@ -282,7 +283,7 @@ The most significant differences between Starlark and Python for this purpose ar
 - Starlark has no `is`.
   You must write `code == None`, not `code is None`.
 - Starlark has no sets.
-  Write `code in (1, 2, 3)` or `code in [1, 2, 3]` rather than `code in {1, 2, 3}`.
+  Write `code in (1, 2, 3)` or `code in [1, 2, 3]` instead of `code in {1, 2, 3}`.
 
 You can use the following variables in the condition expression:
 
@@ -292,38 +293,38 @@ You can use the following variables in the condition expression:
 - `code`: `int | None` — the exit code of the last command.
   `code` is `None` when the command was not found.
 - `command_found`: `bool` — whether the last command was found.
-- `max_attempts`: `int` — the value of the option `--attempts`.
+- `max_attempts`: `int` — the value of the `--attempts` option.
   `--forever` sets it to -1.
-- `stderr`: `io_buffer | None` — an object that represents standard error.
+- `stderr`: `io_buffer | None` — an object representing standard error.
   `None` without `-E`/`--hold-stderr`.
-- `stdin`: `io_buffer | None` — an object that represents standard input.
+- `stdin`: `io_buffer | None` — an object representing standard input.
   `None` without `-I`/`--replay-stdin`.
-- `stdout`: `io_buffer | None` — an object that represents standard output.
+- `stdout`: `io_buffer | None` — an object representing standard output.
   `None` without `-O`/`--hold-stdout`.
 - `time`: `float` — the time the most recent attempt took, in seconds.
-- `total_time`: `float` — the time between the start of the first attempt and the end of the most recent, again in seconds.
+- `total_time`: `float` — the elapsed time from the start of the first attempt to the end of the most recent attempt, in seconds.
 
-recur defines custom functions:
+recur defines the following custom functions:
 
-- `exit(code: int | None) -> None` — exit with the exit code.
-  If `code` is `None`, exit with the exit code for a missing command (127).
+- `exit(code: int | None) -> None` — exit with the given exit code.
+  If `code` is `None`, exit with code 127 (command not found).
 - `inspect(value: Any, *, prefix: str = "") -> Any` — log `value` prefixed by `prefix` and return `value`.
   This is useful for debugging.
 
-The `stdin`, `stdout`, and `stderr` objects have methods:
+The `stdin`, `stdout`, and `stderr` objects have the following methods:
 
-- `stdout.flush() -> None`, `stderr.flush() -> None` — if recur is running with the option `-O`/`--hold-stdout` or `-E`/`--hold-stderr` respectively, recur will output the command's buffered standard output or error after evaluating the condition.
-  recur will print the standard output or error whether the condition is true or false and also if `exit` is called.
-  The methods do nothing without their respective options.
-- `stdin.search`, `stdout.search`, and `stderr.search` with the signature `search(pattern: str, *, group: int | None = None, default: Any = None) -> Any` — match a [Go regular expression](https://pkg.go.dev/regexp) against standard input, output, or error.
+- `stdout.flush() -> None`, `stderr.flush() -> None` — if recur is running with `-O`/`--hold-stdout` or `-E`/`--hold-stderr` respectively, recur will output the command's buffered standard output or standard error after evaluating the condition.
+  The output is printed whether the condition is true or false, and also if `exit` is called.
+  These methods do nothing without their respective options.
+- `stdin.search`, `stdout.search`, and `stderr.search` with signature `search(pattern: str, *, group: int | None = None, default: Any = None) -> Any` — match a [Go regular expression](https://pkg.go.dev/regexp) against standard input, standard output, or standard error.
   `pattern` uses the [RE2 syntax](https://github.com/google/re2/wiki/Syntax).
   If `group` is not specified, the function returns a list of submatches (with the full match as the first element) or `default` if no match is found.
   If `group` is specified, it returns the given capture group or `default` if the group is not found.
-  These methods require the option `-I`/`--replay-stdin`, `-O`/`--hold-stdout`, and `-E`/`--hold-stderr` respectively.
+  These methods require `-I`/`--replay-stdin`, `-O`/`--hold-stdout`, and `-E`/`--hold-stderr` respectively.
   Without the option, the corresponding object is `None`, and calling methods on it will result in an error.
 
 The `exit` function allows you to override the default behavior of returning the last command's exit code.
-For example, you can make recur exit with success when the command fails.
+For example, you can make recur exit with success when the command fails:
 
 ```shell
 recur --condition 'code != 0 and exit(0)' sh -c 'exit 1'
@@ -331,7 +332,7 @@ recur --condition 'code != 0 and exit(0)' sh -c 'exit 1'
 recur --condition 'False if code == 0 else exit(0)' sh -c 'exit 1'
 ```
 
-In the following example, we stop early and do not retry when the command's exit code indicates incorrect usage or a problem with the installation.
+In the following example, recur stops early and does not retry when the command's exit code indicates incorrect usage or a problem with the installation:
 
 ```shell
 recur --condition 'code == 0 or (code in (1, 2, 3, 4) and exit(code))' curl "$url"
@@ -346,7 +347,7 @@ MIT.
 recur was inspired by [retry-cli](https://github.com/tirsen/retry-cli).
 I wanted something like retry-cli but without the Node.js dependency.
 
-There are other similar tools:
+Other similar tools include:
 
 - [attempt](https://github.com/MaxBondABE/attempt).
   Written in Rust.
@@ -365,7 +366,7 @@ There are other similar tools:
   `sudo apt install retry`.
 - [retry (timofurrer)](https://github.com/timofurrer/retry-cmd).
   Written in Rust.
-`cargo install retry-cmd`.
+  `cargo install retry-cmd`.
 - [retry-cli](https://github.com/tirsen/retry-cli).
   Written in JavaScript for Node.js.
   `npx retry-cli`.
