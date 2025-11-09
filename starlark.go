@@ -211,7 +211,7 @@ func makeSearchMethod(content []byte) *starlark.Builtin {
 	})
 }
 
-func evaluateCondition(attemptInfo attempt, expr string, stdinContent []byte, stdoutContent []byte, stderrContent []byte) (conditionEvalResult, error) {
+func evaluateCondition(attemptInfo attempt, expr string, stdinContent []byte, stdoutContent []byte, stderrContent []byte, replayStdin bool, holdStdout bool, holdStderr bool) (conditionEvalResult, error) {
 	thread := &starlark.Thread{Name: "condition"}
 
 	var code starlark.Value
@@ -221,24 +221,39 @@ func evaluateCondition(attemptInfo attempt, expr string, stdinContent []byte, st
 		code = starlark.None
 	}
 
-	stdin := &starlarkIOBuffer{
-		methods: starlark.StringDict{
-			"search": makeSearchMethod(stdinContent),
-		},
+	var stdin starlark.Value
+	if replayStdin {
+		stdin = &starlarkIOBuffer{
+			methods: starlark.StringDict{
+				"search": makeSearchMethod(stdinContent),
+			},
+		}
+	} else {
+		stdin = starlark.None
 	}
 
-	stdout := &starlarkIOBuffer{
-		methods: starlark.StringDict{
-			"flush":  makeFlushMethod(starlarkVarFlushStdout),
-			"search": makeSearchMethod(stdoutContent),
-		},
+	var stdout starlark.Value
+	if holdStdout {
+		stdout = &starlarkIOBuffer{
+			methods: starlark.StringDict{
+				"flush":  makeFlushMethod(starlarkVarFlushStdout),
+				"search": makeSearchMethod(stdoutContent),
+			},
+		}
+	} else {
+		stdout = starlark.None
 	}
 
-	stderr := &starlarkIOBuffer{
-		methods: starlark.StringDict{
-			"flush":  makeFlushMethod(starlarkVarFlushStderr),
-			"search": makeSearchMethod(stderrContent),
-		},
+	var stderr starlark.Value
+	if holdStderr {
+		stderr = &starlarkIOBuffer{
+			methods: starlark.StringDict{
+				"flush":  makeFlushMethod(starlarkVarFlushStderr),
+				"search": makeSearchMethod(stderrContent),
+			},
+		}
+	} else {
+		stderr = starlark.None
 	}
 
 	env := starlark.StringDict{

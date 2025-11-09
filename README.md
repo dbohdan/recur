@@ -187,7 +187,9 @@ You can use methods on the built-in `stdin`, `stdout`, and `stderr` objects in y
 - `stderr.search` — matches against standard error (requires `-E`/`--hold-stderr`)
 
 Both methods use [Go regular expressions](https://pkg.go.dev/regexp) with the [RE2 syntax](https://github.com/google/re2/wiki/Syntax).
-Without their respective command-line option (`-I`/`--replay-stdin`, `-O`/`--hold-stdout`, or `-E`/`--hold-stderr`), the methods match against an empty string.
+
+The `stdin`, `stdout`, and `stderr` objects are `None` without their respective command-line option (`-I`/`--replay-stdin`, `-O`/`--hold-stdout`, or `-E`/`--hold-stderr`).
+Attempting to call methods on `None` will result in an error.
 
 Standard input, output, and error are not available directly as Starlark strings to reduce memory usage.
 These methods provide the only way to access them in conditions.
@@ -292,9 +294,12 @@ You can use the following variables in the condition expression:
 - `command_found`: `bool` — whether the last command was found.
 - `max_attempts`: `int` — the value of the option `--attempts`.
   `--forever` sets it to -1.
-- `stderr`: `io_buffer` — an object that represents standard error.
-- `stdin`: `io_buffer` — an object that represents standard input.
-- `stdout`: `io_buffer` — an object that represents standard output.
+- `stderr`: `io_buffer | None` — an object that represents standard error.
+  `None` without `-E`/`--hold-stderr`.
+- `stdin`: `io_buffer | None` — an object that represents standard input.
+  `None` without `-I`/`--replay-stdin`.
+- `stdout`: `io_buffer | None` — an object that represents standard output.
+  `None` without `-O`/`--hold-stdout`.
 - `time`: `float` — the time the most recent attempt took, in seconds.
 - `total_time`: `float` — the time between the start of the first attempt and the end of the most recent, again in seconds.
 
@@ -315,7 +320,7 @@ The `stdin`, `stdout`, and `stderr` objects have methods:
   If `group` is not specified, the function returns a list of submatches (with the full match as the first element) or `default` if no match is found.
   If `group` is specified, it returns the given capture group or `default` if the group is not found.
   These methods require the option `-I`/`--replay-stdin`, `-O`/`--hold-stdout`, and `-E`/`--hold-stderr` respectively.
-  Without the option, they match against an empty string.
+  Without the option, the corresponding object is `None`, and calling methods on it will result in an error.
 
 The `exit` function allows you to override the default behavior of returning the last command's exit code.
 For example, you can make recur exit with success when the command fails.

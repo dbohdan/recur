@@ -345,6 +345,18 @@ func TestConditionReSearchStdin(t *testing.T) {
 			t.Errorf("Expected no error, got %v", err)
 		}
 	})
+
+	t.Run("without -I flag", func(t *testing.T) {
+		_, stderr, err := runCommandWithStdin("hello world", "-c", `stdin.search("world")`, commandCat)
+
+		if err == nil {
+			t.Error("Expected an error, got nil")
+		}
+
+		if matched, _ := regexp.MatchString("has no .search field or method", stderr); !matched {
+			t.Error("Expected 'has no .search field or method' in stderr")
+		}
+	})
 }
 
 func TestConditionReSearchStdout(t *testing.T) {
@@ -376,6 +388,18 @@ func TestConditionReSearchStdout(t *testing.T) {
 			t.Errorf("Expected no error, got %v", err)
 		}
 	})
+
+	t.Run("without -O flag", func(t *testing.T) {
+		_, stderr, err := runCommand("-c", `stdout.search("hello")`, commandHello)
+
+		if err == nil {
+			t.Error("Expected an error, got nil")
+		}
+
+		if matched, _ := regexp.MatchString("has no .search field or method", stderr); !matched {
+			t.Error("Expected 'has no .search field or method' in stderr")
+		}
+	})
 }
 
 func TestConditionReSearchStderr(t *testing.T) {
@@ -405,6 +429,18 @@ func TestConditionReSearchStderr(t *testing.T) {
 
 		if err != nil {
 			t.Errorf("Expected no error, got %v", err)
+		}
+	})
+
+	t.Run("without -E flag", func(t *testing.T) {
+		_, stderr, err := runCommand("-c", `stderr.search("hello")`, commandHello, "--stderr")
+
+		if err == nil {
+			t.Error("Expected an error, got nil")
+		}
+
+		if matched, _ := regexp.MatchString("has no .search field or method", stderr); !matched {
+			t.Error("Expected 'has no .search field or method' in stderr")
 		}
 	})
 }
@@ -518,6 +554,18 @@ func TestHoldStdout(t *testing.T) {
 			t.Errorf("Expected one instance of 'hello', got %q", stdout)
 		}
 	})
+
+	t.Run("flushing stdout without -O flag", func(t *testing.T) {
+		_, stderr, err := runCommand("-c", "stdout.flush()", commandHello)
+
+		if err == nil {
+			t.Error("Expected an error, got nil")
+		}
+
+		if matched, _ := regexp.MatchString("has no .flush field or method", stderr); !matched {
+			t.Error("Expected 'has no .flush field or method' in stderr")
+		}
+	})
 }
 
 func TestHoldStderr(t *testing.T) {
@@ -560,6 +608,18 @@ func TestHoldStderr(t *testing.T) {
 		_, stderr, _ := runCommand("-a", "3", "-c", "stderr.flush() or exit(0)", "-E", commandHello, "--stderr")
 		if stderr != "hello\n" {
 			t.Errorf("Expected one instance of 'hello', got %q", stderr)
+		}
+	})
+
+	t.Run("flushing stderr without -E flag", func(t *testing.T) {
+		_, stderr, err := runCommand("-c", "stderr.flush()", commandHello, "--stderr")
+
+		if err == nil {
+			t.Error("Expected an error, got nil")
+		}
+
+		if matched, _ := regexp.MatchString("has no .flush field or method", stderr); !matched {
+			t.Error("Expected 'has no .flush field or method' in stderr")
 		}
 	})
 }

@@ -331,7 +331,7 @@ func retry(config retryConfig, stdinContent []byte) (int, error) {
 			TotalTime:        totalTime,
 		}
 
-		evalResult, err := evaluateCondition(attemptInfo, config.Condition, stdinContent, stdoutContent, stderrContent)
+		evalResult, err := evaluateCondition(attemptInfo, config.Condition, stdinContent, stdoutContent, stderrContent, config.ReplayStdin, config.HoldStdout, config.HoldStderr)
 		if evalResult.FlushStdout {
 			os.Stdout.Write(stdoutContent)
 		}
