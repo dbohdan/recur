@@ -47,7 +47,7 @@ const (
 	envVarMaxAttempts       = "RECUR_MAX_ATTEMPTS"
 	envVarAttemptSinceReset = "RECUR_ATTEMPT_SINCE_RESET"
 	exitCodeCommandNotFound = 127
-	exitCodeError           = -1
+	exitCodeError           = 255
 	exitCodeTimeout         = 124
 	maxVerboseLevel         = 3
 	version                 = "3.0.0"
