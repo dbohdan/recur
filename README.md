@@ -35,7 +35,7 @@ go install dbohdan.com/recur/v3@latest
 
 ## Build requirements
 
-- Go 1.19
+- Go 1.22
 - [Task](https://taskfile.dev/) (go-task) 3.28
 
 ## Usage
@@ -46,7 +46,7 @@ go install dbohdan.com/recur/v3@latest
 ```none
 Usage: recur [-h] [-V] [-a <attempts>] [-b <backoff>] [-c <condition>] [-d
 <delay>] [-E] [-F] [-f] [-I] [-j <jitter>] [-m <max-delay>] [-O] [-r
-<reset-time>] [-t <timeout>] [-v] [--] <command> [<arg> ...]
+<reset-time>] [-s <seed>] [-t <timeout>] [-v] [--] <command> [<arg> ...]
 
 Retry a command with exponential backoff and jitter.
 
@@ -103,6 +103,9 @@ Fibonacci backoff (duration)
           Minimum attempt time that resets exponential and Fibonacci backoff
 (duration; negative for no reset)
 
+  -s, --seed 0
+          Random seed for jitter (0 for current time)
+
   -t, --timeout -1s
           Timeout for each attempt (duration; negative for no timeout)
 
@@ -128,7 +131,7 @@ recur --backoff 2s --condition False --forever --max-delay 1m --reset 5m foo --c
 
 recur exits with the last command's exit code unless the user overrides this in the condition.
 When the command is not found during the last attempt, recur exits with code 127.
-recur exits with code 124 on timeout and 255 when there is an internal error.
+It exits with code 124 on timeout and 255 on internal error.
 
 ### Standard input
 
@@ -159,7 +162,7 @@ Because the data is buffered in memory, `--replay-stdin` is not recommended for 
 The command's [standard output](https://en.wikipedia.org/wiki/Standard_streams#Standard_output_(stdout)) and [standard error](https://en.wikipedia.org/wiki/Standard_streams#Standard_error_(stderr)) are passed through to recur's standard output and standard error by default.
 To buffer standard output and only print it on success, use `-O`/`--hold-stdout`;
 use `-E`/`--hold-stderr` for standard error.
-With these options, recur buffers the command's stdout or stderr and only prints it if the success condition is met or the condition expression calls `stdout.flush()` or `stderr.flush()`.
+With these options, recur buffers the command's standard output or standard error and only prints it if the success condition is met or the condition expression calls `stdout.flush()` or `stderr.flush()`.
 
 ```none
 $ recur -c 'attempt == 3' sh -c 'echo "$RECUR_ATTEMPT"'

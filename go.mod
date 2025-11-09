@@ -1,6 +1,6 @@
 module dbohdan.com/recur/v3
 
-go 1.19
+go 1.22
 
 require (
 	github.com/alecthomas/repr v0.4.0

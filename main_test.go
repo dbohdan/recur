@@ -623,3 +623,24 @@ func TestHoldStderr(t *testing.T) {
 		}
 	})
 }
+
+func TestRandomSeedReproducibility(t *testing.T) {
+	// Run with a specific random seed and capture stderr for the verbose output of delays.
+	args := []string{"-a", "5", "-j", "5ms", "-s", "123", "-v", commandExit99}
+
+	_, stderr1, err1 := runCommand(args...)
+	if err1 == nil {
+		t.Errorf("Expected an error, got nil")
+	}
+
+	// Run again with the same seed.
+	_, stderr2, err2 := runCommand(args...)
+	if err2 == nil {
+		t.Errorf("Expected an error, got nil")
+	}
+
+	// The stderr output (specifically the "waiting" messages) should be identical.
+	if stderr1 != stderr2 {
+		t.Errorf("Standard error outputs are not reproducible with the same seed.\nstderr 1:\n%s\nstderr 2:\n%s", stderr1, stderr2)
+	}
+}

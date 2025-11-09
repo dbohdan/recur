@@ -93,6 +93,7 @@ type retryConfig struct {
 	HoldStdout  bool
 	MaxAttempts int
 	RandomDelay interval
+	RandomSeed  int64
 	ReplayStdin bool
 	Reset       time.Duration
 	Timeout     time.Duration
@@ -106,6 +107,7 @@ const (
 	jitterDefault      = "0,0"
 	maxDelayDefault    = time.Duration(time.Hour)
 	maxAttemptsDefault = 10
+	randomSeedDefault  = int64(0)
 	resetDefault       = time.Duration(-time.Second)
 	timeoutDefault     = time.Duration(-time.Second)
 )
@@ -236,7 +238,7 @@ func fib(n int) float64 {
 	return math.Round((math.Pow(math.Phi, nf) - math.Pow(-math.Phi, -nf)) * 0.4472135954999579)
 }
 
-func delayBeforeAttempt(attemptNum int, config retryConfig) time.Duration {
+func delayBeforeAttempt(attemptNum int, config retryConfig, rng *rand.Rand) time.Duration {
 	if attemptNum == 1 {
 		return 0
 	}
@@ -251,7 +253,7 @@ func delayBeforeAttempt(attemptNum int, config retryConfig) time.Duration {
 	}
 
 	currRandom := config.RandomDelay.Start.Seconds() +
-		rand.Float64()*(config.RandomDelay.End-config.RandomDelay.Start).Seconds()
+		rng.Float64()*(config.RandomDelay.End-config.RandomDelay.Start).Seconds()
 
 	return time.Duration((currFixed + currRandom) * float64(time.Second))
 }
@@ -271,7 +273,7 @@ func formatDuration(d time.Duration) string {
 	return s
 }
 
-func retry(config retryConfig, stdinContent []byte) (int, error) {
+func retry(config retryConfig, stdinContent []byte, rng *rand.Rand) (int, error) {
 	var cmdResult commandResult
 	var stdoutContent, stderrContent []byte
 	var startTime time.Time
@@ -280,7 +282,7 @@ func retry(config retryConfig, stdinContent []byte) (int, error) {
 	resetAttemptNum := 1
 	for attemptNum := 1; config.MaxAttempts < 0 || attemptNum <= config.MaxAttempts; attemptNum++ {
 		attemptSinceReset := attemptNum - resetAttemptNum + 1
-		delay := delayBeforeAttempt(attemptSinceReset, config)
+		delay := delayBeforeAttempt(attemptSinceReset, config, rng)
 		if delay > 0 {
 			if config.Verbose >= 1 {
 				log.Printf("waiting %s after attempt %d", formatDuration(delay), attemptNum-1)
@@ -370,7 +372,7 @@ func wrapForTerm(s string) string {
 
 func usage(w io.Writer) {
 	s := fmt.Sprintf(
-		`Usage: %s [-h] [-V] [-a <attempts>] [-b <backoff>] [-c <condition>] [-d <delay>] [-E] [-F] [-f] [-I] [-j <jitter>] [-m <max-delay>] [-O] [-r <reset-time>] [-t <timeout>] [-v] [--] <command> [<arg> ...]`,
+		`Usage: %s [-h] [-V] [-a <attempts>] [-b <backoff>] [-c <condition>] [-d <delay>] [-E] [-F] [-f] [-I] [-j <jitter>] [-m <max-delay>] [-O] [-r <reset-time>] [-s <seed>] [-t <timeout>] [-v] [--] <command> [<arg> ...]`,
 		filepath.Base(os.Args[0]),
 	)
 
@@ -434,6 +436,9 @@ Options:
   -r, --reset %v
           Minimum attempt time that resets exponential and Fibonacci backoff (duration; negative for no reset)
 
+  -s, --seed %v
+          Random seed for jitter (0 for current time)
+
   -t, --timeout %v
           Timeout for each attempt (duration; negative for no timeout)
 
@@ -447,6 +452,7 @@ Options:
 		jitterDefault,
 		formatDuration(maxDelayDefault),
 		formatDuration(resetDefault),
+		randomSeedDefault,
 		formatDuration(timeoutDefault),
 		maxVerboseLevel,
 	)
@@ -462,6 +468,7 @@ func parseArgs() retryConfig {
 		FixedDelay:  interval{Start: delayDefault, End: maxDelayDefault},
 		MaxAttempts: maxAttemptsDefault,
 		Reset:       resetDefault,
+		RandomSeed:  randomSeedDefault,
 		Timeout:     timeoutDefault,
 	}
 
@@ -583,6 +590,16 @@ func parseArgs() retryConfig {
 
 			config.Reset = reset
 
+		case "-s", "--seed":
+			value := nextArg(arg)
+
+			seed, err := strconv.ParseInt(value, 10, 64)
+			if err != nil {
+				usageError("invalid random seed: %v", value)
+			}
+
+			config.RandomSeed = seed
+
 		case "-t", "--timeout":
 			value := nextArg(arg)
 
@@ -637,6 +654,14 @@ func parseArgs() retryConfig {
 func main() {
 	config := parseArgs()
 
+	// Initialize the random number generator for jitter.
+	var rng *rand.Rand
+	seed := time.Now().UnixNano()
+	if config.RandomSeed != randomSeedDefault {
+		seed = config.RandomSeed
+	}
+	rng = rand.New(rand.NewSource(seed))
+
 	// Configure logging.
 	customWriter := &elapsedTimeWriter{
 		startTime: time.Now(),
@@ -667,7 +692,7 @@ func main() {
 		log.Printf("configuration:\n%s\n", repr.String(config, repr.Indent("\t"), repr.OmitEmpty(false)))
 	}
 
-	exitCode, err := retry(config, stdinContent)
+	exitCode, err := retry(config, stdinContent, rng)
 	if err != nil {
 		log.Printf("%v", err)
 	}
