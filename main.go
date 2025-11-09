@@ -48,6 +48,7 @@ const (
 	envVarAttemptSinceReset = "RECUR_ATTEMPT_SINCE_RESET"
 	exitCodeCommandNotFound = 127
 	exitCodeError           = -1
+	exitCodeTimeout         = 124
 	maxVerboseLevel         = 3
 	version                 = "3.0.0"
 )
@@ -206,7 +207,7 @@ func executeCommand(command string, args []string, timeout time.Duration, envVar
 		if ctx.Err() == context.DeadlineExceeded {
 			return commandResult{
 				Status:   statusTimeout,
-				ExitCode: exitCodeError,
+				ExitCode: exitCodeTimeout,
 			}, stdoutBuffer.Bytes(), stderrBuffer.Bytes()
 		}
 
