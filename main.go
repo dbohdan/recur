@@ -28,7 +28,7 @@ import (
 	"io"
 	"log"
 	"math"
-	"math/rand"
+	"math/rand/v2"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -93,7 +93,7 @@ type retryConfig struct {
 	HoldStdout  bool
 	MaxAttempts int
 	RandomDelay interval
-	RandomSeed  int64
+	RandomSeed  uint64
 	ReplayStdin bool
 	Reset       time.Duration
 	Timeout     time.Duration
@@ -107,7 +107,7 @@ const (
 	jitterDefault      = "0,0"
 	maxDelayDefault    = time.Duration(time.Hour)
 	maxAttemptsDefault = 10
-	randomSeedDefault  = int64(0)
+	randomSeedDefault  = uint64(0)
 	resetDefault       = time.Duration(-time.Second)
 	timeoutDefault     = time.Duration(-time.Second)
 )
@@ -437,7 +437,7 @@ Options:
           Minimum attempt time that resets exponential and Fibonacci backoff (duration; negative for no reset)
 
   -s, --seed %v
-          Random seed for jitter (0 for current time)
+          Random seed for jitter (0 for automatic)
 
   -t, --timeout %v
           Timeout for each attempt (duration; negative for no timeout)
@@ -593,7 +593,7 @@ func parseArgs() retryConfig {
 		case "-s", "--seed":
 			value := nextArg(arg)
 
-			seed, err := strconv.ParseInt(value, 10, 64)
+			seed, err := strconv.ParseUint(value, 10, 64)
 			if err != nil {
 				usageError("invalid random seed: %v", value)
 			}
@@ -655,12 +655,12 @@ func main() {
 	config := parseArgs()
 
 	// Initialize the random number generator for jitter.
-	var rng *rand.Rand
-	seed := time.Now().UnixNano()
-	if config.RandomSeed != randomSeedDefault {
-		seed = config.RandomSeed
+	var pcg *rand.PCG
+	if config.RandomSeed == randomSeedDefault {
+		pcg = rand.NewPCG(rand.Uint64(), rand.Uint64())
+	} else {
+		pcg = rand.NewPCG(config.RandomSeed, 0)
 	}
-	rng = rand.New(rand.NewSource(seed))
 
 	// Configure logging.
 	customWriter := &elapsedTimeWriter{
@@ -692,7 +692,7 @@ func main() {
 		log.Printf("configuration:\n%s\n", repr.String(config, repr.Indent("\t"), repr.OmitEmpty(false)))
 	}
 
-	exitCode, err := retry(config, stdinContent, rng)
+	exitCode, err := retry(config, stdinContent, rand.New(pcg))
 	if err != nil {
 		log.Printf("%v", err)
 	}

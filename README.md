@@ -104,7 +104,7 @@ Fibonacci backoff (duration)
 (duration; negative for no reset)
 
   -s, --seed 0
-          Random seed for jitter (0 for current time)
+          Random seed for jitter (0 for automatic)
 
   -t, --timeout -1s
           Timeout for each attempt (duration; negative for no timeout)
