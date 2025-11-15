@@ -185,19 +185,19 @@ Because the data is buffered in memory, `--hold-stdout` and `--hold-stderr` are 
 
 ### Regular-expression matching
 
-You can use methods on the built-in `stdin`, `stdout`, and `stderr` objects in your success condition to match regular expressions against a command's input or output:
+You can match regular expressions against recur's input and the command's output in your success condition using methods on the built-in objects `stdin`, `stdout`, and `stderr`:
 
 - `stdin.search()` — matches against standard input (requires `-I`/`--replay-stdin`)
 - `stdout.search()` — matches against standard output (requires `-O`/`--hold-stdout`)
 - `stderr.search()` — matches against standard error (requires `-E`/`--hold-stderr`)
 
-Both methods use [Go regular expressions](https://pkg.go.dev/regexp) with the [RE2 syntax](https://github.com/google/re2/wiki/Syntax).
+These methods use [Go regular expressions](https://pkg.go.dev/regexp) with the [RE2 syntax](https://github.com/google/re2/wiki/Syntax).
 
-The `stdin`, `stdout`, and `stderr` objects are `None` without their respective command-line options (`-I`/`--replay-stdin`, `-O`/`--hold-stdout`, or `-E`/`--hold-stderr`).
-Calling methods on them will result in an error.
+The `stdin`, `stdout`, and `stderr` objects are `None` without their respective command-line option (`-I`/`--replay-stdin`, `-O`/`--hold-stdout`, or `-E`/`--hold-stderr`).
+Calling methods on `None` will result in an error.
 
 Standard input, standard output, and standard error are not available directly as Starlark strings to reduce memory usage.
-These methods provide the only way to access them in conditions.
+The methods provide the only way to access them in conditions.
 
 #### Matching standard input
 
