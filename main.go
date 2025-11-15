@@ -141,11 +141,12 @@ func parseInterval(s string) (interval, error) {
 
 	parts := strings.Split(s, ",")
 	if len(parts) == 2 {
-		start, err = time.ParseDuration(parts[0])
+		start, err = time.ParseDuration(strings.TrimRight(parts[0], " "))
 		if err != nil {
 			return interval{}, fmt.Errorf("invalid start duration: %s", parts[0])
 		}
-		end, err = time.ParseDuration(parts[1])
+
+		end, err = time.ParseDuration(strings.TrimLeft(parts[1], " "))
 		if err != nil {
 			return interval{}, fmt.Errorf("invalid end duration: %s", parts[1])
 		}
@@ -154,6 +155,7 @@ func parseInterval(s string) (interval, error) {
 		if err != nil {
 			return interval{}, fmt.Errorf("invalid end duration: %s", parts[0])
 		}
+
 		start = 0
 	} else {
 		return interval{}, fmt.Errorf("invalid interval format: %s", s)

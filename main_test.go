@@ -644,3 +644,14 @@ func TestRandomSeedReproducibility(t *testing.T) {
 		t.Errorf("Standard error outputs are not reproducible with the same seed.\nstderr 1:\n%s\nstderr 2:\n%s", stderr1, stderr2)
 	}
 }
+
+func TestJitterWithSpaces(t *testing.T) {
+	_, stderr, err := runCommand("-a", "2", "-j", "1ms, 5ms", "-v", commandExit99)
+	if err == nil {
+		t.Errorf("Expected an error, got nil")
+	}
+
+	if matched, _ := regexp.MatchString(`waiting \d+ms`, stderr); !matched {
+		t.Error("Expected 'waiting' message with duration in stderr")
+	}
+}
