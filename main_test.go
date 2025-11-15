@@ -624,24 +624,34 @@ func TestHoldStderr(t *testing.T) {
 	})
 }
 
+// TestRandomSeedReproducibility tests that the same random seed produces identical jitter delays.
+// We remove timestamps from log lines before comparison to avoid timing-related flakiness.
 func TestRandomSeedReproducibility(t *testing.T) {
-	// Run with a specific random seed and capture stderr for the verbose output of delays.
 	args := []string{"-a", "5", "-j", "5ms", "-s", "123", "-v", commandExit99}
 
-	_, stderr1, err1 := runCommand(args...)
-	if err1 == nil {
-		t.Errorf("Expected an error, got nil")
+	removeTimestamps := func(s string) string {
+		re := regexp.MustCompile(`recur \[\d{2}:\d{2}:\d{2}\.\d\]: `)
+		return re.ReplaceAllString(s, "")
 	}
 
-	// Run again with the same seed.
-	_, stderr2, err2 := runCommand(args...)
-	if err2 == nil {
+	// Run with a specific random seed and capture stderr for the verbose output of delays.
+	_, stderr1, err := runCommand(args...)
+	if err == nil {
 		t.Errorf("Expected an error, got nil")
+		return
 	}
 
-	// The stderr output (specifically the "waiting" messages) should be identical.
-	if stderr1 != stderr2 {
-		t.Errorf("Standard error outputs are not reproducible with the same seed.\nstderr 1:\n%s\nstderr 2:\n%s", stderr1, stderr2)
+	_, stderr2, err := runCommand(args...)
+	if err == nil {
+		t.Errorf("Expected an error, got nil")
+		return
+	}
+
+	normalized1 := removeTimestamps(stderr1)
+	normalized2 := removeTimestamps(stderr2)
+
+	if normalized1 != normalized2 {
+		t.Errorf("Standard error outputs are not reproducible with the same seed.\nNormalized stderr 1:\n%s\nNormalized stderr 2:\n%s", normalized1, normalized2)
 	}
 }
 
