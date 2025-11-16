@@ -19,9 +19,10 @@ tasks:
       - all
 
   all:
-    desc: 'Build and test everything'
+    desc: 'Build, lint, and test everything'
     deps:
       - build
+      - lint
       - test
 
   build:
@@ -101,6 +102,11 @@ tasks:
         for:
           var: test_binaries
           as: test_binary
+
+  lint:
+    desc: 'Run golangci-lint'
+    cmds:
+      - golangci-lint run
 
   release:
     desc: 'Prepare a release'
