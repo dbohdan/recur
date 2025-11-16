@@ -101,7 +101,7 @@ func build(dir string, target BuildTarget, version string) error {
 	)
 
 	if output, err := cmd.CombinedOutput(); err != nil {
-		return fmt.Errorf("Build command failed: %v\nOutput:\n%s", err, output)
+		return fmt.Errorf("build command failed: %w\nOutput:\n%s", err, output)
 	}
 
 	return generateChecksum(outputPath, version)
@@ -110,13 +110,13 @@ func build(dir string, target BuildTarget, version string) error {
 func generateChecksum(filePath, version string) error {
 	f, err := os.Open(filePath)
 	if err != nil {
-		return fmt.Errorf("Failed to open file for checksumming: %v", err)
+		return fmt.Errorf("failed to open file for checksumming: %w", err)
 	}
 	defer f.Close()
 
 	h := sha256.New()
 	if _, err := io.Copy(h, f); err != nil {
-		return fmt.Errorf("Failed to calculate hash: %v", err)
+		return fmt.Errorf("failed to calculate hash: %w", err)
 	}
 
 	hash := hex.EncodeToString(h.Sum(nil))
@@ -126,12 +126,12 @@ func generateChecksum(filePath, version string) error {
 	checksumFilePath := filepath.Join(filepath.Dir(filePath), checksumFilename)
 	f, err = os.OpenFile(checksumFilePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
-		return fmt.Errorf("Failed to open checksum file: %v", err)
+		return fmt.Errorf("failed to open checksum file: %w", err)
 	}
 	defer f.Close()
 
 	if _, err := f.WriteString(checksumLine); err != nil {
-		return fmt.Errorf("Failed to write checksum: %v", err)
+		return fmt.Errorf("failed to write checksum: %w", err)
 	}
 
 	return nil

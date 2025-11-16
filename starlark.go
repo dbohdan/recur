@@ -42,7 +42,7 @@ type conditionEvalResult struct {
 	FlushStderr bool
 }
 
-func StarlarkExit(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+func StarlarkExit(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
 	var code starlark.Value
 	if err := starlark.UnpackPositionalArgs(b.Name(), args, kwargs, 1, &code); err != nil {
 		return nil, err
@@ -55,16 +55,16 @@ func StarlarkExit(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tu
 	if codeInt, ok := code.(starlark.Int); ok {
 		exitCode, ok := codeInt.Int64()
 		if !ok {
-			return nil, fmt.Errorf("exit code too large")
+			return nil, errors.New("exit code too large")
 		}
 
 		return starlark.None, &exitRequestError{Code: int(exitCode)}
 	}
 
-	return nil, fmt.Errorf("exit code wasn't 'int' or 'None'")
+	return nil, errors.New("exit code wasn't 'int' or 'None'")
 }
 
-func StarlarkInspect(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+func StarlarkInspect(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
 	var prefix starlark.String
 	var value starlark.Value
 
@@ -106,6 +106,8 @@ func (b *starlarkIOBuffer) Hash() (uint32, error) {
 }
 
 // Attr returns the value of a field or method.
+//
+//nolint:nilnil,unparam
 func (b *starlarkIOBuffer) Attr(name string) (starlark.Value, error) {
 	if val, ok := b.methods[name]; ok {
 		return val, nil
@@ -149,7 +151,7 @@ func makeFlushMethod(varName string) *starlark.Builtin {
 }
 
 func makeSearchMethod(content []byte) *starlark.Builtin {
-	return starlark.NewBuiltin("search", func(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+	return starlark.NewBuiltin("search", func(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
 		var pattern starlark.String
 		var group starlark.Value = starlark.None
 		var defaultValue starlark.Value = starlark.None
@@ -190,12 +192,12 @@ func makeSearchMethod(content []byte) *starlark.Builtin {
 		// If group is specified, return the specified group.
 		groupInt, ok := group.(starlark.Int)
 		if !ok {
-			return nil, fmt.Errorf("group must be an integer")
+			return nil, errors.New("group must be an integer")
 		}
 
 		groupIndex, ok := groupInt.Int64()
 		if !ok {
-			return nil, fmt.Errorf("group index too large")
+			return nil, errors.New("group index too large")
 		}
 
 		if groupIndex < 0 || groupIndex >= int64(len(matches)) {
@@ -212,6 +214,7 @@ func makeSearchMethod(content []byte) *starlark.Builtin {
 }
 
 func evaluateCondition(attemptInfo attempt, expr string, stdinContent []byte, stdoutContent []byte, stderrContent []byte, replayStdin bool, holdStdout bool, holdStderr bool) (conditionEvalResult, error) {
+	//nolint:exhaustruct
 	thread := &starlark.Thread{Name: "condition"}
 
 	var code starlark.Value
@@ -275,16 +278,22 @@ func evaluateCondition(attemptInfo attempt, expr string, stdinContent []byte, st
 	val, err := starlark.EvalOptions(syntax.LegacyFileOptions(), thread, "", expr, env)
 	flushStdout := flushLocal(thread, starlarkVarFlushStdout)
 	flushStderr := flushLocal(thread, starlarkVarFlushStderr)
+
 	if err != nil {
 		var exitErr *exitRequestError
 		if errors.As(err, &exitErr) {
 			return conditionEvalResult{
+				Success:     false,
 				FlushStdout: flushStdout,
 				FlushStderr: flushStderr,
 			}, exitErr
 		}
 
-		return conditionEvalResult{}, err
+		return conditionEvalResult{
+			Success:     false,
+			FlushStdout: false,
+			FlushStderr: false,
+		}, err
 	}
 
 	success := bool(val.Truth())

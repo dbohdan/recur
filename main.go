@@ -44,13 +44,20 @@ import (
 
 const (
 	envVarAttempt           = "RECUR_ATTEMPT"
-	envVarMaxAttempts       = "RECUR_MAX_ATTEMPTS"
 	envVarAttemptSinceReset = "RECUR_ATTEMPT_SINCE_RESET"
+	envVarMaxAttempts       = "RECUR_MAX_ATTEMPTS"
+	exitCodeBadUsage        = 2
 	exitCodeCommandNotFound = 127
 	exitCodeError           = 255
 	exitCodeTimeout         = 124
-	maxVerboseLevel         = 3
 	version                 = "3.0.0"
+
+	invSqrt5 = 0.4472135954999579
+
+	verboseLevelAttemptResults   = 1
+	verboseLevelConditionDetails = 2
+	verboseLevelConfigDebug      = 3
+	verboseLevelMax              = 3
 )
 
 type attempt struct {
@@ -105,17 +112,18 @@ const (
 	conditionDefault   = "code == 0"
 	delayDefault       = time.Duration(0)
 	jitterDefault      = "0,0"
-	maxDelayDefault    = time.Duration(time.Hour)
+	maxDelayDefault    = time.Hour
 	maxAttemptsDefault = 10
 	randomSeedDefault  = uint64(0)
-	resetDefault       = time.Duration(-time.Second)
-	timeoutDefault     = time.Duration(-time.Second)
+	resetDefault       = -time.Second
+	timeoutDefault     = -time.Second
 )
 
 type elapsedTimeWriter struct {
 	startTime time.Time
 }
 
+//nolint:mnd
 func (w *elapsedTimeWriter) Write(bytes []byte) (int, error) {
 	elapsed := time.Since(w.startTime)
 
@@ -124,6 +132,7 @@ func (w *elapsedTimeWriter) Write(bytes []byte) (int, error) {
 	seconds := int(elapsed.Seconds()) % 60
 	deciseconds := elapsed.Milliseconds() % 1000 / 100
 
+	//nolint:wrapcheck
 	return fmt.Fprintf(os.Stderr, "recur [%02d:%02d:%02d.%01d]: %s", hours, minutes, seconds, deciseconds, string(bytes))
 }
 
@@ -140,7 +149,9 @@ func parseInterval(s string) (interval, error) {
 	var err error
 
 	parts := strings.Split(s, ",")
-	if len(parts) == 2 {
+	//nolint:mnd
+	switch len(parts) {
+	case 2:
 		start, err = time.ParseDuration(strings.TrimRight(parts[0], " "))
 		if err != nil {
 			return interval{}, fmt.Errorf("invalid start duration: %s", parts[0])
@@ -150,14 +161,14 @@ func parseInterval(s string) (interval, error) {
 		if err != nil {
 			return interval{}, fmt.Errorf("invalid end duration: %s", parts[1])
 		}
-	} else if len(parts) == 1 {
+	case 1:
 		end, err = time.ParseDuration(parts[0])
 		if err != nil {
 			return interval{}, fmt.Errorf("invalid end duration: %s", parts[0])
 		}
 
 		start = 0
-	} else {
+	default:
 		return interval{}, fmt.Errorf("invalid interval format: %s", s)
 	}
 
@@ -177,8 +188,10 @@ func executeCommand(command string, args []string, timeout time.Duration, envVar
 	}
 
 	ctx := context.Background()
+
 	if timeout >= 0 {
 		var cancel context.CancelFunc
+
 		ctx, cancel = context.WithTimeout(ctx, timeout)
 		defer cancel()
 	}
@@ -237,7 +250,8 @@ func executeCommand(command string, args []string, timeout time.Duration, envVar
 
 func fib(n int) float64 {
 	nf := float64(n)
-	return math.Round((math.Pow(math.Phi, nf) - math.Pow(-math.Phi, -nf)) * 0.4472135954999579)
+
+	return math.Round((math.Pow(math.Phi, nf) - math.Pow(-math.Phi, -nf)) * invSqrt5)
 }
 
 func delayBeforeAttempt(attemptNum int, config retryConfig, rng *rand.Rand) time.Duration {
@@ -247,9 +261,11 @@ func delayBeforeAttempt(attemptNum int, config retryConfig, rng *rand.Rand) time
 
 	currFixed := config.FixedDelay.Start.Seconds()
 	currFixed += math.Pow(config.Backoff.Seconds(), float64(attemptNum-1))
+
 	if config.Fibonacci {
 		currFixed += fib(attemptNum - 1)
 	}
+
 	if currFixed > config.FixedDelay.End.Seconds() {
 		currFixed = config.FixedDelay.End.Seconds()
 	}
@@ -263,6 +279,7 @@ func delayBeforeAttempt(attemptNum int, config retryConfig, rng *rand.Rand) time
 func formatDuration(d time.Duration) string {
 	d = d.Round(time.Millisecond)
 	if d > time.Second {
+		//nolint:mnd
 		d = d.Round(100 * time.Millisecond)
 	}
 
@@ -272,6 +289,7 @@ func formatDuration(d time.Duration) string {
 	if s == "" {
 		return "0"
 	}
+
 	return s
 }
 
@@ -284,11 +302,13 @@ func retry(config retryConfig, stdinContent []byte, rng *rand.Rand) (int, error)
 	resetAttemptNum := 1
 	for attemptNum := 1; config.MaxAttempts < 0 || attemptNum <= config.MaxAttempts; attemptNum++ {
 		attemptSinceReset := attemptNum - resetAttemptNum + 1
+
 		delay := delayBeforeAttempt(attemptSinceReset, config, rng)
 		if delay > 0 {
-			if config.Verbose >= 1 {
+			if config.Verbose >= verboseLevelAttemptResults {
 				log.Printf("waiting %s after attempt %d", formatDuration(delay), attemptNum-1)
 			}
+
 			time.Sleep(delay)
 		}
 
@@ -312,7 +332,7 @@ func retry(config retryConfig, stdinContent []byte, rng *rand.Rand) (int, error)
 			resetAttemptNum = attemptNum
 		}
 
-		if config.Verbose >= 1 {
+		if config.Verbose >= verboseLevelAttemptResults {
 			switch cmdResult.Status {
 			case statusFinished:
 				log.Printf("command exited with code %d on attempt %d", cmdResult.ExitCode, attemptNum)
@@ -336,12 +356,15 @@ func retry(config retryConfig, stdinContent []byte, rng *rand.Rand) (int, error)
 		}
 
 		evalResult, err := evaluateCondition(attemptInfo, config.Condition, stdinContent, stdoutContent, stderrContent, config.ReplayStdin, config.HoldStdout, config.HoldStderr)
+
 		if evalResult.FlushStdout {
 			os.Stdout.Write(stdoutContent)
 		}
+
 		if evalResult.FlushStderr {
 			os.Stderr.Write(stderrContent)
 		}
+
 		if err != nil {
 			var exitErr *exitRequestError
 			if errors.As(err, &exitErr) {
@@ -355,7 +378,7 @@ func retry(config retryConfig, stdinContent []byte, rng *rand.Rand) (int, error)
 			return cmdResult.ExitCode, nil
 		}
 
-		if config.Verbose >= 2 {
+		if config.Verbose >= verboseLevelConditionDetails {
 			log.Printf("condition not met; continuing to next attempt")
 		}
 	}
@@ -369,6 +392,7 @@ func wrapForTerm(s string) string {
 		return s
 	}
 
+	//nolint:gosec
 	return wordwrap.WrapString(s, uint(width))
 }
 
@@ -456,7 +480,7 @@ Options:
 		formatDuration(resetDefault),
 		randomSeedDefault,
 		formatDuration(timeoutDefault),
-		maxVerboseLevel,
+		verboseLevelMax,
 	)
 
 	fmt.Print(wrapForTerm(s))
@@ -466,18 +490,25 @@ func parseArgs() retryConfig {
 	config := retryConfig{
 		Args:        []string{},
 		Backoff:     backoffDefault,
+		Command:     "",
 		Condition:   conditionDefault,
+		Fibonacci:   false,
 		FixedDelay:  interval{Start: delayDefault, End: maxDelayDefault},
+		HoldStderr:  false,
+		HoldStdout:  false,
 		MaxAttempts: maxAttemptsDefault,
-		Reset:       resetDefault,
+		RandomDelay: interval{Start: 0, End: 0},
 		RandomSeed:  randomSeedDefault,
+		ReplayStdin: false,
+		Reset:       resetDefault,
 		Timeout:     timeoutDefault,
+		Verbose:     0,
 	}
 
-	usageError := func(message string, badValue interface{}) {
+	usageError := func(message string, badValue any) {
 		usage(os.Stderr)
 		fmt.Fprintf(os.Stderr, "\nError: "+message+"\n", badValue)
-		os.Exit(2)
+		os.Exit(exitCodeBadUsage)
 	}
 
 	vShortFlags := regexp.MustCompile("^-v+$")
@@ -502,8 +533,10 @@ func parseArgs() retryConfig {
 
 		if arg == "--" {
 			i++
+
 			break
 		}
+
 		if !strings.HasPrefix(arg, "-") {
 			break
 		}
@@ -512,7 +545,6 @@ func parseArgs() retryConfig {
 		case "-a", "--attempts":
 			value := nextArg(arg)
 
-			var maxAttempts int
 			maxAttempts, err := strconv.Atoi(value)
 			if err != nil {
 				usageError("invalid maximum number of attempts: %v", value)
@@ -622,6 +654,7 @@ func parseArgs() retryConfig {
 		default:
 			if vShortFlags.MatchString(arg) {
 				config.Verbose += len(arg) - 1
+
 				continue
 			}
 
@@ -639,8 +672,8 @@ func parseArgs() retryConfig {
 		os.Exit(0)
 	}
 
-	if config.Verbose > maxVerboseLevel {
-		usageError("up to %d verbose options is allowed", maxVerboseLevel)
+	if config.Verbose > verboseLevelMax {
+		usageError("up to %d verbose options is allowed", verboseLevelMax)
 	}
 
 	if i >= len(os.Args) {
@@ -658,6 +691,7 @@ func main() {
 
 	// Initialize the random number generator for jitter.
 	var pcg *rand.PCG
+	//nolint:gosec
 	if config.RandomSeed == randomSeedDefault {
 		pcg = rand.NewPCG(rand.Uint64(), rand.Uint64())
 	} else {
@@ -671,7 +705,7 @@ func main() {
 	log.SetOutput(customWriter)
 	log.SetFlags(0)
 
-	var stdinContent []byte = nil
+	var stdinContent []byte
 	if config.ReplayStdin {
 		stdinContent = []byte{}
 
@@ -690,10 +724,11 @@ func main() {
 		}
 	}
 
-	if config.Verbose >= 3 {
+	if config.Verbose >= verboseLevelConfigDebug {
 		log.Printf("configuration:\n%s\n", repr.String(config, repr.Indent("\t"), repr.OmitEmpty(false)))
 	}
 
+	//nolint:gosec
 	exitCode, err := retry(config, stdinContent, rand.New(pcg))
 	if err != nil {
 		log.Printf("%v", err)
