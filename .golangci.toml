@@ -171,3 +171,9 @@ enable = [
 
 [formatters.exclusions]
 generated = "lax"
+
+[output]
+sort-order = [
+    "file",
+    "linter",
+]
