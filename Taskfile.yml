@@ -25,6 +25,13 @@ tasks:
       - lint
       - test
 
+  check:
+    desc: 'Build, lint, and test everything'
+    deps:
+      - build
+      - lint
+      - test
+
   build:
     desc: 'Build all components'
     deps:
