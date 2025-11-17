@@ -58,7 +58,7 @@ jobs:
             PATH=$(go env GOPATH)/bin:$PATH
 
             go install 'github.com/go-task/task/v3/cmd/task@${{ env.TASK_VERSION }}'
-            task
+            task test
 
   linux:
     runs-on: ubuntu-latest
@@ -77,7 +77,7 @@ jobs:
 
     - name: Build and test
       run: |
-        task
+        task test
 
   mac:
     runs-on: macos-latest
@@ -96,7 +96,7 @@ jobs:
 
     - name: Build and test
       run: |
-        task
+        task test
 
   windows:
     runs-on: windows-latest
@@ -118,7 +118,7 @@ jobs:
 
     - name: Build and test
       run: |
-        task
+        task test
 
     - name: Upload Windows binary
       uses: actions/upload-artifact@v4
