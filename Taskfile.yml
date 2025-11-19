@@ -55,7 +55,7 @@ tasks:
     deps:
       - build-recur
     cmds:
-      - go run script/render_template.go
+      - go run script/update_readme.go
     status:
       - README.md
       - main.go
