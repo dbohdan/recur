@@ -2,7 +2,6 @@ version: '3'
 
 vars:
   dist_dir: dist/
-  ext: '{{if eq OS "windows"}}.exe{{end}}'
   test_binaries: |
     test/cat
     test/env
@@ -48,7 +47,7 @@ tasks:
     desc: 'Build a single Go binary'
     internal: true
     cmds:
-      - go build -o {{.out | shellQuote}}{{.ext}}{{range (.srcs | trim | splitLines)}} {{. | shellQuote}}{{end}}
+      - go build -o {{.out | shellQuote}}{{exeExt}}{{range (.srcs | trim | splitLines)}} {{. | shellQuote}}{{end}}
 
   build-readme:
     desc: 'Update the usage section in "README.md" with current help'
@@ -76,7 +75,7 @@ tasks:
       - main.go
       - starlark.go
     generates:
-      - recur{{.ext}}
+      - recur{{exeExt}}
 
   build-test-binaries:
     desc: 'Build all test binaries'
@@ -95,17 +94,17 @@ tasks:
       - test/hello.go
       - test/sleep.go
     generates:
-      - test/cat{{.ext}}
-      - test/env{{.ext}}
-      - test/exit99{{.ext}}
-      - test/hello{{.ext}}
-      - test/sleep{{.ext}}
+      - test/cat{{exeExt}}
+      - test/env{{exeExt}}
+      - test/exit99{{exeExt}}
+      - test/hello{{exeExt}}
+      - test/sleep{{exeExt}}
 
   clean:
     desc: 'Clean up binaries and generated files'
     cmds:
-      - rm -f recur{{.ext}}
-      - cmd: rm -f {{.test_binary | shellQuote}}{{.ext}}
+      - rm -f recur{{exeExt}}
+      - cmd: rm -f {{.test_binary | shellQuote}}{{exeExt}}
         for:
           var: test_binaries
           as: test_binary
@@ -120,7 +119,7 @@ tasks:
     deps:
       - build-binaries
     cmds:
-      - VERSION=$(./recur{{.ext}} --version) go run script/release.go
+      - VERSION=$(./recur{{exeExt}} --version) go run script/release.go
 
   test:
     desc: 'Run tests'
