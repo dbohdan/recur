@@ -116,7 +116,7 @@ Fibonacci backoff (duration)
 
 Duration arguments take [Go duration strings](https://pkg.go.dev/time#ParseDuration);
 for example, `0`, `100ms`, `2.5s`, `0.5m`, or `1h`.
-The value of `-j`/`--jitter` must be either a single duration or two durations joined with a comma, like `1s,2s`.
+The value of `-j`/`--jitter` must be either a single duration or two durations joined with a comma, like `1s,2s` or `500ms, 0.5m`.
 
 If the maximum delay (`-m`/`--max-delay`) is shorter than the constant delay (`-d`/`--delay`), the constant delay will automatically increase the maximum delay to match it.
 Use `-m`/`--max-delay` after `-d`/`--delay` if you want a shorter maximum delay.
@@ -131,7 +131,7 @@ recur --backoff 2s --condition False --forever --max-delay 1m --reset 5m foo --c
 
 recur exits with the last command's exit code unless the user overrides this in the condition.
 When the command is not found during the last attempt, recur exits with code 127.
-It exits with code 124 on timeout and 255 on internal error.
+recur exits with code 124 on timeout and 255 on internal error.
 
 ### Standard input
 
@@ -160,9 +160,8 @@ Because the data is buffered in memory, `--replay-stdin` is not recommended for 
 ### Standard output and standard error
 
 The command's [standard output](https://en.wikipedia.org/wiki/Standard_streams#Standard_output_(stdout)) and [standard error](https://en.wikipedia.org/wiki/Standard_streams#Standard_error_(stderr)) are passed through to recur's standard output and standard error by default.
-To buffer standard output and only print it on success, use `-O`/`--hold-stdout`;
-use `-E`/`--hold-stderr` for standard error.
-With these options, recur buffers the command's standard output or standard error and only prints it if the success condition is met or the condition expression calls `stdout.flush()` or `stderr.flush()`.
+To buffer standard output and only print it on success, use `-O`/`--hold-stdout`.
+With this option, recur buffers the command's standard output and only prints it if the success condition is met or the condition expression calls `stdout.flush()`.
 
 ```none
 $ recur -c 'attempt == 3' sh -c 'echo "$RECUR_ATTEMPT"'
@@ -201,7 +200,7 @@ The methods provide the only way to access them in conditions.
 
 #### Matching standard input
 
-The following example waits for the input to contain "done" on the line after "status:":
+The following example waits for the input to contain `done` on a line after `status:`:
 
 ```none
 $ printf 'Status:\nDONE\n' | recur \
@@ -219,7 +218,7 @@ The regular expression `(?im)status:\s*done$` uses [RE2 inline flags](https://gi
 - `i` for case-insensitive matching
 - `m` for multiline mode (`$` matches the end of each line)
 
-The condition evaluates to true when `stdin.search()` finds a match (returns a non-empty list) and false when no match is found (the return value is `None`).
+The condition evaluates to true when `stdin.search()` finds a match (returns a non-empty list) and false when no match is found (returns `None`).
 
 Standard input is perhaps of limited use for retrying a command because it is read once and never changes.
 However, it can be used to exit early.
@@ -294,7 +293,7 @@ You can use the following variables in the condition expression:
   Combine with `--forever` to use the condition instead of the built-in attempt counter.
 - `attempt_since_reset`: `int` — the attempt number since exponential and Fibonacci backoff were reset, starting at one.
 - `code`: `int | None` — the exit code of the last command.
-  `code` is `None` when the command was not found.
+  `code` is `None` when the command was not found and 124 when a timeout occurred.
 - `command_found`: `bool` — whether the last command was found.
 - `max_attempts`: `int` — the value of the `--attempts` option.
   `--forever` sets it to -1.
@@ -318,7 +317,7 @@ The `stdin`, `stdout`, and `stderr` objects have the following methods:
 
 - `stdout.flush() -> None`, `stderr.flush() -> None` — if recur is running with `-O`/`--hold-stdout` or `-E`/`--hold-stderr` respectively, recur will output the command's buffered standard output or standard error after evaluating the condition.
   The output is printed whether the condition is true or false, and also if `exit` is called.
-  These methods do nothing without their respective options.
+  These methods cannot be called without their respective options because the objects are `None`.
 - `stdin.search`, `stdout.search`, and `stderr.search` with signature `search(pattern: str, *, group: int | None = None, default: Any = None) -> Any` — match a [Go regular expression](https://pkg.go.dev/regexp) against standard input, standard output, or standard error.
   `pattern` uses the [RE2 syntax](https://github.com/google/re2/wiki/Syntax).
   If `group` is not specified, the function returns a list of submatches (with the full match as the first element) or `default` if no match is found.
