@@ -4,8 +4,8 @@ package main
 
 import (
 	"bytes"
-	"io/ioutil"
 	"log"
+	"os"
 	"os/exec"
 	"regexp"
 	"strings"
@@ -15,9 +15,9 @@ import (
 
 func main() {
 	readmeFile := "README.md"
-	content, err := ioutil.ReadFile(readmeFile)
+	content, err := os.ReadFile(readmeFile)
 	if err != nil {
-		log.Fatalf(`Failed to read "README.md": %v`, err)
+		log.Fatalf("Failed to read %q: %v", readmeFile, err)
 	}
 
 	cmd := exec.Command("./recur", "--help")
@@ -34,7 +34,7 @@ func main() {
 	newUsageBlock := "<!-- BEGIN USAGE -->\n```none\n" + wrappedHelp + "\n```\n<!-- END USAGE -->"
 	updatedContent := re.ReplaceAllLiteralString(string(content), newUsageBlock)
 
-	if err := ioutil.WriteFile(readmeFile, []byte(updatedContent), 0644); err != nil {
-		log.Fatalf(`Failed to write "README.md": %v`, err)
+	if err := os.WriteFile(readmeFile, []byte(updatedContent), 0644); err != nil {
+		log.Fatalf("Failed to write %q: %v", readmeFile, err)
 	}
 }
