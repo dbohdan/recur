@@ -47,7 +47,7 @@ tasks:
     desc: 'Build a single Go binary'
     internal: true
     cmds:
-      - go build -o {{.out | shellQuote}}{{exeExt}}{{range (.srcs | trim | splitLines)}} {{. | shellQuote}}{{end}}
+      - go build -o {{.out | shellQuote}}{{exeExt}} -trimpath{{range (.srcs | trim | splitLines)}} {{. | shellQuote}}{{end}}
 
   build-readme:
     desc: 'Update the usage section in "README.md" with current help'
