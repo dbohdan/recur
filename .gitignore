@@ -4,12 +4,12 @@
 
 *.bak
 *.exe
-*.swp
+*.sw*
 
 /help
 /recur
-/test/cat
-/test/env
-/test/exit99
-/test/hello
-/test/sleep
+/test/cat/cat
+/test/env/env
+/test/exit99/exit99
+/test/hello/hello
+/test/sleep/sleep

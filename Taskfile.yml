@@ -1,13 +1,12 @@
 version: '3'
 
 vars:
-  dist_dir: dist/
-  test_binaries: |
-    test/cat
-    test/env
-    test/exit99
-    test/hello
-    test/sleep
+  test_commands: |
+    test/cat/
+    test/env/
+    test/exit99/
+    test/hello/
+    test/sleep/
 
 env:
   CGO_ENABLED: 0
@@ -18,10 +17,9 @@ tasks:
       - all
 
   all:
-    desc: 'Build, lint, and test everything'
+    desc: 'Build and test everything'
     deps:
       - build
-      - lint
       - test
 
   check:
@@ -34,20 +32,21 @@ tasks:
   build:
     desc: 'Build all components'
     deps:
+      - build-commands
       - build-readme
-      - build-binaries
 
-  build-binaries:
-    desc: 'Build all necessary binaries'
+  build-commands:
+    desc: 'Build all commands'
     deps:
       - build-recur
-      - build-test-binaries
+      - build-test-commands
 
-  build-binary:
-    desc: 'Build a single Go binary'
+  build-package:
+    desc: 'Build a single Go package'
     internal: true
+    dir: '{{.package}}'
     cmds:
-      - go build -o {{.out | shellQuote}}{{exeExt}} -trimpath{{range (.srcs | trim | splitLines)}} {{. | shellQuote}}{{end}}
+      - go build -trimpath
 
   build-readme:
     desc: 'Update the usage section in "README.md" with current help'
@@ -56,58 +55,49 @@ tasks:
     cmds:
       - go run script/update_readme.go
     status:
-      - README.md
       - main.go
       - starlark.go
     generates:
       - README.md
 
   build-recur:
-    desc: 'Build the recur binary'
+    desc: 'Build the recur command'
     cmds:
-      - task: build-binary
+      - task: build-package
         vars:
-          out: recur
-          srcs: |
-            main.go
-            starlark.go
+          package: .
     sources:
       - main.go
       - starlark.go
     generates:
       - recur{{exeExt}}
 
-  build-test-binaries:
-    desc: 'Build all test binaries'
+  build-test-commands:
+    desc: 'Build all test commands'
     cmds:
-      - task: build-binary
+      - task: build-package
         vars:
-          out: '{{.test_binary}}'
-          srcs: '{{.test_binary}}.go'
+          package: '{{.test_command}}'
         for:
-          var: test_binaries
-          as: test_binary
+          var: test_commands
+          as: test_command
     sources:
-      - test/cat.go
-      - test/env.go
-      - test/exit99.go
-      - test/hello.go
-      - test/sleep.go
+      - test/**/*.go
     generates:
-      - test/cat{{exeExt}}
-      - test/env{{exeExt}}
-      - test/exit99{{exeExt}}
-      - test/hello{{exeExt}}
-      - test/sleep{{exeExt}}
+      - test/cat/cat{{exeExt}}
+      - test/env/env{{exeExt}}
+      - test/exit99/exit99{{exeExt}}
+      - test/hello/hello{{exeExt}}
+      - test/sleep/sleep{{exeExt}}
 
   clean:
     desc: 'Clean up binaries and generated files'
     cmds:
       - rm -f recur{{exeExt}}
-      - cmd: rm -f {{.test_binary | shellQuote}}{{exeExt}}
+      - cmd: rm -f {{.test_command | shellQuote}}{{.test_command | base | shellQuote}}{{exeExt}}
         for:
-          var: test_binaries
-          as: test_binary
+          var: test_commands
+          as: test_command
 
   lint:
     desc: 'Run golangci-lint'
@@ -117,13 +107,13 @@ tasks:
   release:
     desc: 'Prepare a release'
     deps:
-      - build-binaries
+      - build-commands
     cmds:
       - VERSION=$(./recur{{exeExt}} --version) go run script/release.go
 
   test:
     desc: 'Run tests'
     deps:
-      - build-binaries
+      - build-commands
     cmds:
       - go test

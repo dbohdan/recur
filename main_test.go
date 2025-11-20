@@ -29,12 +29,12 @@ import (
 )
 
 var (
-	commandCat    = "test/cat"
-	commandEnv    = "test/env"
-	commandExit99 = "test/exit99"
-	commandHello  = "test/hello"
+	commandCat    = "test/cat/cat"
+	commandEnv    = "test/env/env"
+	commandExit99 = "test/exit99/exit99"
+	commandHello  = "test/hello/hello"
 	commandRecur  = "./recur"
-	commandSleep  = "test/sleep"
+	commandSleep  = "test/sleep/sleep"
 	noSuchCommand = "no-such-command-should-exist"
 )
 
