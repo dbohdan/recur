@@ -2,11 +2,11 @@ version: '3'
 
 vars:
   test_commands: |
-    test/cat/
-    test/env/
-    test/exit99/
-    test/hello/
-    test/sleep/
+    test/cat
+    test/env
+    test/exit99
+    test/hello
+    test/sleep
 
 env:
   CGO_ENABLED: 0
@@ -53,7 +53,7 @@ tasks:
     deps:
       - build-recur
     cmds:
-      - go run script/update_readme.go
+      - go run ./script/readme
     status:
       - main.go
       - starlark.go
@@ -109,7 +109,7 @@ tasks:
     deps:
       - build-commands
     cmds:
-      - VERSION=$(./recur{{exeExt}} --version) go run script/release.go
+      - VERSION=$(./recur{{exeExt}} --version) go run ./script/release
 
   test:
     desc: 'Run tests'

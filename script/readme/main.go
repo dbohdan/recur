@@ -1,5 +1,3 @@
-//go:build ignore
-
 package main
 
 import (
@@ -15,14 +13,16 @@ import (
 
 func main() {
 	readmeFile := "README.md"
+
 	content, err := os.ReadFile(readmeFile)
 	if err != nil {
 		log.Fatalf("Failed to read %q: %v", readmeFile, err)
 	}
 
-	cmd := exec.Command("./recur", "--help")
 	var cmdOutput bytes.Buffer
+	cmd := exec.Command("./recur", "--help")
 	cmd.Stdout = &cmdOutput
+
 	if err := cmd.Run(); err != nil {
 		log.Fatalf("Failed to run command: %v", err)
 	}

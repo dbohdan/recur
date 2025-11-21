@@ -116,6 +116,15 @@ enable = [
     "zerologlint",
 ]
 
+[[linters.exclusions.rules]]
+path = "script/"
+linters = [
+    "gosec",
+    "mnd",
+    "noctx",
+    "wrapcheck",
+]
+
 [linters.settings.ireturn]
 allow = [
     "anon",
@@ -133,8 +142,16 @@ line-length = 120
 [linters.settings.varnamelen]
 ignore-decls = [
     "d time.Duration",
+    "f *os.File",
     "i int",
+    "in *os.File",
+    "in io.Reader",
+    "j int",
+    "k int",
+    "n int",
     "ok bool",
+    "out *os.File",
+    "out io.Writer",
     "r io.Reader",
     "s string",
     "t time.Time",
