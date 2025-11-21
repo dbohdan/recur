@@ -53,7 +53,7 @@ tasks:
     deps:
       - build-recur
     cmds:
-      - go run ./script/readme
+      - go run ./script/readme ./recur --help
     status:
       - main.go
       - starlark.go
