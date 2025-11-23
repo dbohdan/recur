@@ -17,26 +17,14 @@ tasks:
       - all
 
   all:
-    desc: 'Build and test everything'
+    desc: 'Build and test everything; update docs'
     deps:
       - build
-      - test
-
-  check:
-    desc: 'Build, lint, and test everything'
-    deps:
-      - build
-      - lint
+      - doc
       - test
 
   build:
     desc: 'Build all components'
-    deps:
-      - build:bin
-      - build:readme
-
-  build:bin:
-    desc: 'Build all binaries'
     deps:
       - build:recur
       - build:helpers
@@ -47,32 +35,6 @@ tasks:
     dir: '{{.PACKAGE}}'
     cmds:
       - 'go build -trimpath # {{.PACKAGE}}'
-
-  build:readme:
-    desc: 'Update the usage section in "README.md" with current help'
-    run: once
-    deps:
-      - build:recur
-    cmds:
-      - go run ./script/readme ./recur --help
-    sources:
-      - main.go
-      - script/readme/main.go
-    generates:
-      - README.md
-
-  build:recur:
-    desc: 'Build the recur binary'
-    run: once
-    cmds:
-      - task: build:package
-        vars:
-          PACKAGE: .
-    sources:
-      - main.go
-      - starlark.go
-    generates:
-      - recur{{exeExt}}
 
   build:helpers:
     desc: 'Build all test helpers'
@@ -89,6 +51,27 @@ tasks:
     status:
       - '{{range $i, $path := .TEST_HELPERS | trim | splitLines}}{{if $i}} && {{end}}test -f {{$path | shellQuote}}/{{$path | base | shellQuote}}{{exeExt}}{{end}}'
 
+  build:recur:
+    desc: 'Build the recur binary'
+    run: once
+    cmds:
+      - task: build:package
+        vars:
+          PACKAGE: .
+    sources:
+      - main.go
+      - starlark.go
+    generates:
+      - recur{{exeExt}}
+
+  check:
+    desc: 'Build, format, lint, and test everything'
+    deps:
+      - build
+      - format
+      - lint
+      - test
+
   clean:
     desc: 'Clean up binaries and generated files'
     cmds:
@@ -98,21 +81,44 @@ tasks:
           var: TEST_HELPERS
           as: HELPER
 
+  doc:
+    desc: 'Generate documenation'
+    deps:
+      - doc:readme
+
+  doc:readme:
+    desc: 'Update the usage section in "README.md" with current help'
+    run: once
+    deps:
+      - build:recur
+    cmds:
+      - go run ./script/readme ./recur --help
+    sources:
+      - main.go
+      - script/readme/main.go
+    generates:
+      - README.md
+
+  format:
+    desc: 'Format source code'
+    cmds:
+      - golangci-lint fmt ./...
+
   lint:
-    desc: 'Run golangci-lint'
+    desc: 'Run linters'
     cmds:
       - golangci-lint run
 
   release:
     desc: 'Prepare a release'
     deps:
-      - build:bin
+      - build
     cmds:
       - VERSION=$(./recur{{exeExt}} --version) go run ./script/release
 
   test:
     desc: 'Run tests'
     deps:
-      - build:bin
+      - build
     cmds:
       - go test
