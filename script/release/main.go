@@ -71,27 +71,7 @@ func build(dir string, target BuildTarget, version string) error {
 		ext = ".exe"
 	}
 
-	// Map GOARCH and GOOS to user-facing names.
-	arch := target.arch
-	system := target.os
-
-	if arch == "386" {
-		arch = "x86"
-	}
-
-	if system == "darwin" {
-		system = "macos"
-	}
-
-	if (system == "linux" || system == "macos") && arch == "amd64" {
-		arch = "x86_64"
-	}
-
-	if system == "linux" && arch == "arm64" {
-		arch = "aarch64"
-	}
-
-	filename := fmt.Sprintf("%s-v%s-%s-%s%s", projectName, version, system, arch, ext)
+	filename := fmt.Sprintf("%s-v%s-%s-%s%s", projectName, version, target.os, target.arch, ext)
 	outputPath := filepath.Join(dir, filename)
 
 	cmd := exec.Command("go", "build", "-trimpath", "-o", outputPath, ".")
