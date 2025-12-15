@@ -101,7 +101,7 @@ Fibonacci backoff (duration)
           Buffer standard output for each attempt and only print it on success
 
   -o, --report-file "-"
-          Report output file path ("-" for stderr)
+          Output file for the report ("-" for stderr)
 
   -R, --report "none"
           Report format ("none", "json", or "text")

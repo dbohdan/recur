@@ -543,7 +543,7 @@ Options:
           Buffer standard output for each attempt and only print it on success
 
   -o, --report-file %q
-          Report output file path ("-" for stderr)
+          Output file for the report ("-" for stderr)
 
   -R, --report %q
           Report format ("none", "json", or "text")
