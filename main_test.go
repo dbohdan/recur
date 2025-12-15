@@ -22,7 +22,10 @@ package main
 
 import (
 	"bytes"
+	"encoding/json"
+	"os"
 	"os/exec"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"testing"
@@ -663,5 +666,62 @@ func TestJitterWithSpaces(t *testing.T) {
 
 	if matched, _ := regexp.MatchString(`waiting \d+ms`, stderr); !matched {
 		t.Error("Expected 'waiting' message with duration in stderr")
+	}
+}
+
+func TestReportNone(t *testing.T) {
+	_, stderr, _ := runCommand("-R", "none", "-a", "3", "-c", "False", commandHello)
+
+	if strings.Contains(stderr, "Stats:") {
+		t.Error("Expected no stats output when report is none")
+	}
+}
+
+func TestReportJSON(t *testing.T) {
+	tempDir := t.TempDir()
+	jsonFile := filepath.Join(tempDir, "report.json")
+
+	_, _, err := runCommand("-R", "json", "--report-file", jsonFile, "-a", "3", "-c", "False", commandExit99)
+	if err == nil {
+		t.Errorf("Expected an error, got nil")
+	}
+
+	reportData, err := os.ReadFile(jsonFile)
+	if err != nil {
+		t.Fatalf("Failed to read report file: %v", err)
+	}
+
+	var report map[string]interface{}
+	if err := json.Unmarshal(reportData, &report); err != nil {
+		t.Fatalf("Failed to parse JSON report: %v", err)
+	}
+
+	if attempts, ok := report["attempts"].(float64); !ok || attempts != 3 {
+		t.Errorf("Expected attempts to be 3, got %v", report["attempts"])
+	}
+
+	exitCodes, ok := report["exit_codes"].([]interface{})
+	if !ok {
+		t.Errorf("Expected exit_codes to be an array, got %T", report["exit_codes"])
+	}
+
+	if len(exitCodes) != 3 {
+		t.Errorf("Expected 3 exit codes, got %d", len(exitCodes))
+	}
+
+	for i, code := range exitCodes {
+		if codeFloat, ok := code.(float64); !ok || codeFloat != 99 {
+			t.Errorf("Expected exit code %d to be 99, got %v", i, code)
+		}
+	}
+}
+
+func TestReportText(t *testing.T) {
+	_, stderr, _ := runCommand("-R", "text", "-a", "3", "-c", "False", commandExit99)
+
+	for _, text := range []string{"attempts: 3", "Exit codes: 99, 99, 99"} {
+		if !strings.Contains(stderr, text) {
+			t.Errorf("Expected %q in stderr", text)
+		}
 	}
 }

@@ -23,6 +23,7 @@ package main
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -32,9 +33,11 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"reflect"
 	"regexp"
 	"strconv"
 	"strings"
+	"text/tabwriter"
 	"time"
 
 	"github.com/alecthomas/repr"
@@ -50,9 +53,12 @@ const (
 	exitCodeCommandNotFound = 127
 	exitCodeError           = 255
 	exitCodeTimeout         = 124
-	version                 = "3.0.0"
+	version                 = "3.1.0"
 
 	invSqrt5 = 0.4472135954999579
+
+	reportSecondsFormat = "%0.3f"
+	reportPadding       = 2
 
 	verboseLevelAttemptResults   = 1
 	verboseLevelConditionDetails = 2
@@ -73,75 +79,6 @@ type attempt struct {
 type interval struct {
 	Start time.Duration
 	End   time.Duration
-}
-
-type commandStatus int
-
-const (
-	statusFinished commandStatus = iota
-	statusTimeout
-	statusNotFound
-	statusUnknownError
-)
-
-type commandResult struct {
-	Status   commandStatus
-	ExitCode int
-}
-
-type retryConfig struct {
-	Command     string
-	Args        []string
-	Backoff     time.Duration
-	Condition   string
-	Fibonacci   bool
-	FixedDelay  interval
-	HoldStderr  bool
-	HoldStdout  bool
-	MaxAttempts int
-	RandomDelay interval
-	RandomSeed  uint64
-	ReplayStdin bool
-	Reset       time.Duration
-	Timeout     time.Duration
-	Verbose     int
-}
-
-const (
-	backoffDefault     = time.Duration(0)
-	conditionDefault   = "code == 0"
-	delayDefault       = time.Duration(0)
-	jitterDefault      = "0,0"
-	maxDelayDefault    = time.Hour
-	maxAttemptsDefault = 10
-	randomSeedDefault  = uint64(0)
-	resetDefault       = -time.Second
-	timeoutDefault     = -time.Second
-)
-
-type elapsedTimeWriter struct {
-	startTime time.Time
-}
-
-//nolint:mnd
-func (w *elapsedTimeWriter) Write(bytes []byte) (int, error) {
-	elapsed := time.Since(w.startTime)
-
-	hours := int(elapsed.Hours())
-	minutes := int(elapsed.Minutes()) % 60
-	seconds := int(elapsed.Seconds()) % 60
-	deciseconds := elapsed.Milliseconds() % 1000 / 100
-
-	//nolint:wrapcheck
-	return fmt.Fprintf(os.Stderr, "recur [%02d:%02d:%02d.%01d]: %s", hours, minutes, seconds, deciseconds, string(bytes))
-}
-
-type exitRequestError struct {
-	Code int
-}
-
-func (e *exitRequestError) Error() string {
-	return fmt.Sprintf("exit requested with code %d", e.Code)
 }
 
 func parseInterval(s string) (interval, error) {
@@ -177,6 +114,130 @@ func parseInterval(s string) (interval, error) {
 	}
 
 	return interval{Start: start, End: end}, nil
+}
+
+type commandStatus int
+
+const (
+	statusFinished commandStatus = iota
+	statusTimeout
+	statusNotFound
+	statusUnknownError
+)
+
+type commandResult struct {
+	Status   commandStatus
+	ExitCode int
+}
+
+type reportFormat int
+
+const (
+	reportFormatNone reportFormat = iota
+	reportFormatJSON
+	reportFormatText
+)
+
+func (r reportFormat) String() string {
+	switch r {
+	case reportFormatNone:
+		return "none"
+
+	case reportFormatJSON:
+		return "json"
+
+	case reportFormatText:
+		return "text"
+
+	default:
+		return "unknown"
+	}
+}
+
+func parseReportFormat(s string) (reportFormat, error) {
+	switch s {
+	case "none":
+		return reportFormatNone, nil
+
+	case "json":
+		return reportFormatJSON, nil
+
+	case "text":
+		return reportFormatText, nil
+
+	default:
+		return reportFormatNone, fmt.Errorf("invalid report format: %s", s)
+	}
+}
+
+type retryConfig struct {
+	Command     string
+	Args        []string
+	Backoff     time.Duration
+	Condition   string
+	Fibonacci   bool
+	FixedDelay  interval
+	HoldStderr  bool
+	HoldStdout  bool
+	MaxAttempts int
+	RandomDelay interval
+	RandomSeed  uint64
+	ReplayStdin bool
+	Report      reportFormat
+	ReportFile  string
+	Reset       time.Duration
+	Timeout     time.Duration
+	Verbose     int
+}
+
+type recurStats struct {
+	Attempts         int
+	CommandFound     []bool
+	ConditionResults []bool
+	ExitCodes        []int
+	Failures         int
+	Successes        int
+	TotalTime        time.Duration
+	WaitTimes        []time.Duration
+}
+
+const (
+	backoffDefault     = time.Duration(0)
+	conditionDefault   = "code == 0"
+	delayDefault       = time.Duration(0)
+	jitterDefault      = "0,0"
+	maxDelayDefault    = time.Hour
+	maxAttemptsDefault = 10
+	randomSeedDefault  = uint64(0)
+	reportDefault      = reportFormatNone
+	reportFileDefault  = "-"
+	resetDefault       = -time.Second
+	timeoutDefault     = -time.Second
+)
+
+type elapsedTimeWriter struct {
+	startTime time.Time
+}
+
+//nolint:mnd
+func (w *elapsedTimeWriter) Write(bytes []byte) (int, error) {
+	elapsed := time.Since(w.startTime)
+
+	hours := int(elapsed.Hours())
+	minutes := int(elapsed.Minutes()) % 60
+	seconds := int(elapsed.Seconds()) % 60
+	deciseconds := elapsed.Milliseconds() % 1000 / 100
+
+	//nolint:wrapcheck
+	return fmt.Fprintf(os.Stderr, "recur [%02d:%02d:%02d.%01d]: %s", hours, minutes, seconds, deciseconds, string(bytes))
+}
+
+type exitRequestError struct {
+	Code int
+}
+
+func (e *exitRequestError) Error() string {
+	return fmt.Sprintf("exit requested with code %d", e.Code)
 }
 
 func executeCommand(command string, args []string, timeout time.Duration, envVars []string, stdinContent []byte, holdStdout bool, holdStderr bool) (commandResult, []byte, []byte) {
@@ -293,17 +354,25 @@ func formatDuration(d time.Duration) string {
 	return s
 }
 
-func retry(config retryConfig, stdinContent []byte, rng *rand.Rand) (int, error) {
+func retry(config retryConfig, stdinContent []byte, rng *rand.Rand) (int, recurStats, error) {
+	var stats recurStats
 	var cmdResult commandResult
 	var stdoutContent, stderrContent []byte
 	var startTime time.Time
 	var totalTime time.Duration
 
+	stats.ExitCodes = make([]int, 0)
+	stats.WaitTimes = make([]time.Duration, 0)
+	stats.CommandFound = make([]bool, 0)
+	stats.ConditionResults = make([]bool, 0)
+
 	resetAttemptNum := 1
 	for attemptNum := 1; config.MaxAttempts < 0 || attemptNum <= config.MaxAttempts; attemptNum++ {
 		attemptSinceReset := attemptNum - resetAttemptNum + 1
-
 		delay := delayBeforeAttempt(attemptSinceReset, config, rng)
+
+		stats.WaitTimes = append(stats.WaitTimes, delay)
+
 		if delay > 0 {
 			if config.Verbose >= verboseLevelAttemptResults {
 				log.Printf("waiting %s after attempt %d", formatDuration(delay), attemptNum-1)
@@ -327,6 +396,9 @@ func retry(config retryConfig, stdinContent []byte, rng *rand.Rand) (int, error)
 		attemptEnd := time.Now()
 		attemptDuration := attemptEnd.Sub(attemptStart)
 		totalTime = attemptEnd.Sub(startTime)
+
+		stats.ExitCodes = append(stats.ExitCodes, cmdResult.ExitCode)
+		stats.CommandFound = append(stats.CommandFound, cmdResult.Status != statusNotFound)
 
 		if config.Reset >= 0 && attemptDuration >= config.Reset {
 			resetAttemptNum = attemptNum
@@ -365,25 +437,35 @@ func retry(config retryConfig, stdinContent []byte, rng *rand.Rand) (int, error)
 			os.Stderr.Write(stderrContent)
 		}
 
+		stats.Attempts = attemptNum
+
 		if err != nil {
 			var exitErr *exitRequestError
 			if errors.As(err, &exitErr) {
-				return exitErr.Code, nil
+				return exitErr.Code, stats, nil
 			}
 
-			return 1, fmt.Errorf("condition evaluation failed: %w", err)
+			return 1, stats, fmt.Errorf("condition evaluation failed: %w", err)
 		}
 
+		stats.ConditionResults = append(stats.ConditionResults, evalResult.Success)
+
 		if evalResult.Success {
-			return cmdResult.ExitCode, nil
+			stats.Successes++
+
+			return cmdResult.ExitCode, stats, nil
 		}
+
+		stats.Failures++
 
 		if config.Verbose >= verboseLevelConditionDetails {
 			log.Printf("condition not met; continuing to next attempt")
 		}
 	}
 
-	return cmdResult.ExitCode, fmt.Errorf("maximum %d attempts reached", config.MaxAttempts)
+	stats.TotalTime = totalTime
+
+	return cmdResult.ExitCode, stats, fmt.Errorf("maximum %d attempts reached", config.MaxAttempts)
 }
 
 func wrapForTerm(s string) string {
@@ -398,7 +480,7 @@ func wrapForTerm(s string) string {
 
 func usage(w io.Writer) {
 	s := fmt.Sprintf(
-		`Usage: %s [-h] [-V] [-a <attempts>] [-b <backoff>] [-c <condition>] [-d <delay>] [-E] [-F] [-f] [-I] [-j <jitter>] [-m <max-delay>] [-O] [-r <reset-time>] [-s <seed>] [-t <timeout>] [-v] [--] <command> [<arg> ...]`,
+		`Usage: %s [-h] [-V] [-a <attempts>] [-b <backoff>] [-c <condition>] [-d <delay>] [-E] [-F] [-f] [-I] [-j <jitter>] [-m <max-delay>] [-O] [-R <format>] [--report-file <path>] [-r <reset-time>] [-s <seed>] [-t <timeout>] [-v] [--] <command> [<arg> ...]`,
 		filepath.Base(os.Args[0]),
 	)
 
@@ -432,7 +514,7 @@ Options:
   -b, --backoff %v
           Base for exponential backoff (duration)
 
-  -c, --condition '%v'
+  -c, --condition %q
           Success condition (Starlark expression)
 
   -d, --delay %v
@@ -450,14 +532,20 @@ Options:
   -I, --replay-stdin
           Read standard input until EOF at the start and replay it on each attempt
 
-  -j, --jitter '%v'
-          Additional random delay (maximum duration or 'min,max' duration)
+  -j, --jitter %q
+          Additional random delay (maximum duration or "min,max" duration)
 
   -m, --max-delay %v
           Maximum allowed sum of constant delay, exponential backoff, and Fibonacci backoff (duration)
 
   -O, --hold-stdout
           Buffer standard output for each attempt and only print it on success
+
+  -R, --report %q
+          Report format ("none", "json", or "text")
+
+      --report-file %q
+          Report output file path ("-" for stderr)
 
   -r, --reset %v
           Minimum attempt time that resets exponential and Fibonacci backoff (duration; negative for no reset)
@@ -477,6 +565,8 @@ Options:
 		formatDuration(delayDefault),
 		jitterDefault,
 		formatDuration(maxDelayDefault),
+		reportDefault,
+		reportFileDefault,
 		formatDuration(resetDefault),
 		randomSeedDefault,
 		formatDuration(timeoutDefault),
@@ -503,6 +593,8 @@ func parseArgs() retryConfig {
 		Reset:       resetDefault,
 		Timeout:     timeoutDefault,
 		Verbose:     0,
+		Report:      reportFormatNone,
+		ReportFile:  reportFileDefault,
 	}
 
 	usageError := func(message string, badValue any) {
@@ -644,6 +736,19 @@ func parseArgs() retryConfig {
 
 			config.Timeout = timeout
 
+		case "-R", "--report":
+			reportStr := nextArg(arg)
+
+			reportFormat, err := parseReportFormat(reportStr)
+			if err != nil {
+				usageError("invalid report format: %v", reportStr)
+			}
+
+			config.Report = reportFormat
+
+		case "--report-file":
+			config.ReportFile = nextArg(arg)
+
 		// "-v" is handled in the default case.
 		case "--verbose":
 			config.Verbose++
@@ -684,6 +789,114 @@ func parseArgs() retryConfig {
 	config.Args = os.Args[i+1:]
 
 	return config
+}
+
+func formatList[T any](list []T) string {
+	strs := make([]string, len(list))
+
+	for i, elem := range list {
+		rv := reflect.ValueOf(elem)
+
+		switch rv.Kind() {
+		case reflect.Float64, reflect.Float32:
+			strs[i] = fmt.Sprintf(reportSecondsFormat, rv.Float())
+
+		default:
+			strs[i] = fmt.Sprintf("%v", elem)
+		}
+	}
+
+	return strings.Join(strs, ", ")
+}
+
+func generateReport(stats recurStats, reportFormat reportFormat, reportFile string) {
+	if reportFormat == reportFormatNone {
+		return
+	}
+
+	type reportData struct {
+		Attempts         int       `json:"attempts"`
+		CommandFound     []bool    `json:"command_found"`
+		ConditionResults []bool    `json:"condition_results"`
+		ExitCodes        []int     `json:"exit_codes"`
+		Failures         int       `json:"failures"`
+		Successes        int       `json:"successes"`
+		TotalTime        float64   `json:"total_time"`
+		WaitTimes        []float64 `json:"wait_times"`
+	}
+
+	waitTimeSeconds := make([]float64, len(stats.WaitTimes))
+	for i, wt := range stats.WaitTimes {
+		waitTimeSeconds[i] = wt.Seconds()
+	}
+
+	data := reportData{
+		Attempts:         stats.Attempts,
+		CommandFound:     stats.CommandFound,
+		ConditionResults: stats.ConditionResults,
+		ExitCodes:        stats.ExitCodes,
+		Failures:         stats.Failures,
+		Successes:        stats.Successes,
+		TotalTime:        stats.TotalTime.Seconds(),
+		WaitTimes:        waitTimeSeconds,
+	}
+
+	var output io.Writer
+	if reportFile == "-" {
+		output = os.Stderr
+	} else {
+		file, err := os.Create(reportFile)
+		if err != nil {
+			log.Printf("failed to create report file: %v", err)
+
+			return
+		}
+		defer file.Close()
+
+		output = file
+	}
+
+	switch reportFormat {
+	case reportFormatJSON:
+		var jsonData []byte
+		var err error
+
+		if reportFile == "-" {
+			jsonData, err = json.Marshal(data)
+		} else {
+			jsonData, err = json.MarshalIndent(data, "", "    ")
+		}
+
+		if err != nil {
+			log.Printf("failed to marshal report to JSON: %v", err)
+
+			return
+		}
+
+		fmt.Fprintf(output, "%s\n", string(jsonData))
+
+	case reportFormatText:
+		tw := tabwriter.NewWriter(output, 0, 0, reportPadding, ' ', tabwriter.AlignRight)
+
+		fmt.Fprintln(output)
+		fmt.Fprintf(tw, "Total attempts: \t%d\n", data.Attempts)
+		fmt.Fprintf(tw, "Successes: \t%d\n", data.Successes)
+		fmt.Fprintf(tw, "Failures: \t%d\n", data.Failures)
+
+		fmt.Fprintf(tw, "\t\n")
+		fmt.Fprintf(tw, "Total time: \t"+reportSecondsFormat+"\n", data.TotalTime)
+		fmt.Fprintf(tw, "Wait times: \t%s\n", formatList(data.WaitTimes))
+
+		fmt.Fprintf(tw, "\t\n")
+		fmt.Fprintf(tw, "Condition results: \t%s\n", formatList(data.ConditionResults))
+		fmt.Fprintf(tw, "Command found: \t%s\n", formatList(data.CommandFound))
+		fmt.Fprintf(tw, "Exit codes: \t%s\n", formatList(data.ExitCodes))
+
+		tw.Flush()
+
+	default:
+		panic("unreachable")
+	}
 }
 
 func main() {
@@ -729,10 +942,12 @@ func main() {
 	}
 
 	//nolint:gosec
-	exitCode, err := retry(config, stdinContent, rand.New(pcg))
+	exitCode, stats, err := retry(config, stdinContent, rand.New(pcg))
 	if err != nil {
 		log.Printf("%v", err)
 	}
+
+	generateReport(stats, config.Report, config.ReportFile)
 
 	os.Exit(exitCode)
 }

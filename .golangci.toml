@@ -108,7 +108,7 @@ enable = [
     "unused",
     "usestdlibvars",
     "usetesting",
-    "varnamelen",
+    # "varnamelen",
     "wastedassign",
     "whitespace",
     "wrapcheck",
@@ -125,6 +125,9 @@ linters = [
     "wrapcheck",
 ]
 
+[linters.settings.exhaustive]
+default-signifies-exhaustive = true
+
 [linters.settings.ireturn]
 allow = [
     "anon",
@@ -139,24 +142,11 @@ allow = [
 tab-width = 4
 line-length = 120
 
-[linters.settings.varnamelen]
-ignore-decls = [
-    "d time.Duration",
-    "f *os.File",
-    "i int",
-    "in *os.File",
-    "in io.Reader",
-    "j int",
-    "k int",
-    "n int",
-    "ok bool",
-    "out *os.File",
-    "out io.Writer",
-    "r io.Reader",
-    "s string",
-    "t time.Time",
-    "w io.Writer",
-]
+[linters.settings.tagliatelle.case.rules]
+json = "snake"
+toml = "snake"
+xml = "kebab"
+yaml = "snake"
 
 [linters.settings.wsl_v5]
 disable = [
