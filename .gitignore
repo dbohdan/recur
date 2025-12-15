@@ -3,6 +3,7 @@
 /.task/
 
 *.bak
+*.json
 *.exe
 *.sw*
 
