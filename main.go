@@ -241,13 +241,6 @@ func (e *exitRequestError) Error() string {
 }
 
 func executeCommand(command string, args []string, timeout time.Duration, envVars []string, stdinContent []byte, holdStdout bool, holdStderr bool) (commandResult, []byte, []byte) {
-	if _, err := exec.LookPath(command); err != nil {
-		return commandResult{
-			Status:   statusNotFound,
-			ExitCode: exitCodeCommandNotFound,
-		}, nil, nil
-	}
-
 	ctx := context.Background()
 
 	if timeout >= 0 {
@@ -287,6 +280,14 @@ func executeCommand(command string, args []string, timeout time.Duration, envVar
 				Status:   statusTimeout,
 				ExitCode: exitCodeTimeout,
 			}, stdoutBuffer.Bytes(), stderrBuffer.Bytes()
+		}
+
+		var execErr *exec.Error
+		if errors.As(err, &execErr) {
+			return commandResult{
+				Status:   statusNotFound,
+				ExitCode: exitCodeCommandNotFound,
+			}, nil, nil
 		}
 
 		var exitErr *exec.ExitError
@@ -361,10 +362,10 @@ func retry(config retryConfig, stdinContent []byte, rng *rand.Rand) (int, recurS
 	var startTime time.Time
 	var totalTime time.Duration
 
-	stats.ExitCodes = make([]int, 0)
-	stats.WaitTimes = make([]time.Duration, 0)
 	stats.CommandFound = make([]bool, 0)
 	stats.ConditionResults = make([]bool, 0)
+	stats.ExitCodes = make([]int, 0)
+	stats.WaitTimes = make([]time.Duration, 0)
 
 	resetAttemptNum := 1
 	for attemptNum := 1; config.MaxAttempts < 0 || attemptNum <= config.MaxAttempts; attemptNum++ {
