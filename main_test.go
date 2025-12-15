@@ -669,19 +669,37 @@ func TestJitterWithSpaces(t *testing.T) {
 	}
 }
 
-func TestReportNone(t *testing.T) {
-	_, stderr, _ := runCommand("-R", "none", "-a", "3", "-c", "False", commandHello)
+func TestReportEmpty(t *testing.T) {
+	_, stderr, _ := runCommand("-R", "", "-a", "3", "-c", "False", commandHello)
 
-	if strings.Contains(stderr, "Stats:") {
-		t.Error("Expected no stats output when report is none")
+	if strings.Contains(stderr, "Total attempts") || strings.Contains(stderr, "{") {
+		t.Error("Expected no stats output when report is empty")
 	}
 }
 
-func TestReportJSON(t *testing.T) {
+func TestReportStderrJSON(t *testing.T) {
+	_, stderr, _ := runCommand("-R", "json:-", "-a", "3", "-c", "False", commandExit99)
+
+	if !strings.Contains(stderr, `{"attempts":3,`) {
+		t.Error("Expected JSON report in stderr")
+	}
+}
+
+func TestReportStderrText(t *testing.T) {
+	_, stderr, _ := runCommand("-R", "text:-", "-a", "3", "-c", "False", commandExit99)
+
+	for _, text := range []string{"Total attempts: 3\n", "Exit codes: 99, 99, 99\n"} {
+		if !strings.Contains(stderr, text) {
+			t.Errorf("Expected %q in stderr", text)
+		}
+	}
+}
+
+func TestReportFileJSON(t *testing.T) {
 	tempDir := t.TempDir()
 	jsonFile := filepath.Join(tempDir, "report.json")
 
-	_, _, err := runCommand("-R", "json", "--report-file", jsonFile, "-a", "3", "-c", "False", commandExit99)
+	_, _, err := runCommand("-R", jsonFile, "-a", "3", "-c", "False", commandExit99)
 	if err == nil {
 		t.Errorf("Expected an error, got nil")
 	}
@@ -731,12 +749,62 @@ func TestReportJSON(t *testing.T) {
 	}
 }
 
-func TestReportText(t *testing.T) {
-	_, stderr, _ := runCommand("-R", "text", "-o", "-", "-a", "3", "-c", "False", commandExit99)
+func TestReportFileText(t *testing.T) {
+	tempDir := t.TempDir()
+	textFile := filepath.Join(tempDir, "report.txt")
 
-	for _, text := range []string{"attempts: 3", "Exit codes: 99, 99, 99"} {
-		if !strings.Contains(stderr, text) {
-			t.Errorf("Expected %q in stderr", text)
+	_, _, _ = runCommand("-R", textFile, "-a", "3", "-c", "False", commandExit99)
+
+	reportData, err := os.ReadFile(textFile)
+	if err != nil {
+		t.Fatalf("Failed to read report file: %v", err)
+	}
+
+	reportText := string(reportData)
+
+	for _, text := range []string{"Total attempts: 3\n", "Exit codes: 99, 99, 99\n"} {
+		if !strings.Contains(reportText, text) {
+			t.Errorf("Expected %q in report file", text)
 		}
 	}
+}
+
+func TestReportFormatOverride(t *testing.T) {
+	t.Run("json prefix with .txt extension", func(t *testing.T) {
+		tempDir := t.TempDir()
+		file := filepath.Join(tempDir, "report.txt")
+
+		_, _, _ = runCommand("-R", "json:"+file, "-a", "3", "-c", "False", commandExit99)
+
+		reportData, err := os.ReadFile(file)
+		if err != nil {
+			t.Fatalf("Failed to read report file: %v", err)
+		}
+
+		var report map[string]interface{}
+		if err := json.Unmarshal(reportData, &report); err != nil {
+			t.Fatalf("Expected JSON format, got parse error: %v", err)
+		}
+	})
+
+	t.Run("text prefix with .json extension", func(t *testing.T) {
+		tempDir := t.TempDir()
+		file := filepath.Join(tempDir, "report.json")
+
+		_, _, _ = runCommand("-R", "text:"+file, "-a", "3", "-c", "False", commandExit99)
+
+		reportData, err := os.ReadFile(file)
+		if err != nil {
+			t.Fatalf("Failed to read report file: %v", err)
+		}
+
+		reportText := string(reportData)
+		if strings.Contains(reportText, `"attempts"`) {
+			t.Error("Expected text format, got JSON")
+		}
+
+		if !strings.Contains(reportText, "Total attempts:") {
+			t.Error("Expected text format with 'Total attempts:'")
+		}
+	})
 }

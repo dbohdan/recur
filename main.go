@@ -154,19 +154,39 @@ func (r reportFormat) String() string {
 	}
 }
 
-func parseReportFormat(s string) (reportFormat, error) {
-	switch s {
-	case "none":
-		return reportFormatNone, nil
+type reportConfig struct {
+	Format reportFormat
+	Path   string
+}
 
-	case "json":
-		return reportFormatJSON, nil
+func parseReportConfig(s string) reportConfig {
+	if s == "" {
+		return reportConfig{Format: reportFormatNone, Path: ""}
+	}
 
-	case "text":
-		return reportFormatText, nil
+	if path, found := strings.CutPrefix(s, "json:"); found {
+		return reportConfig{
+			Format: reportFormatJSON,
+			Path:   path,
+		}
+	}
 
-	default:
-		return reportFormatNone, fmt.Errorf("invalid report format: %s", s)
+	if path, found := strings.CutPrefix(s, "text:"); found {
+		return reportConfig{
+			Format: reportFormatText,
+			Path:   path,
+		}
+	}
+
+	// Infer the format from the file extension.
+	format := reportFormatText
+	if strings.HasSuffix(s, ".json") {
+		format = reportFormatJSON
+	}
+
+	return reportConfig{
+		Format: format,
+		Path:   s,
 	}
 }
 
@@ -183,8 +203,7 @@ type retryConfig struct {
 	RandomDelay interval
 	RandomSeed  uint64
 	ReplayStdin bool
-	Report      reportFormat
-	ReportFile  string
+	Report      reportConfig
 	Reset       time.Duration
 	Timeout     time.Duration
 	Verbose     int
@@ -209,8 +228,7 @@ const (
 	maxDelayDefault    = time.Hour
 	maxAttemptsDefault = 10
 	randomSeedDefault  = uint64(0)
-	reportDefault      = reportFormatNone
-	reportFileDefault  = "-"
+	reportDefault      = ""
 	resetDefault       = -time.Second
 	timeoutDefault     = -time.Second
 )
@@ -481,7 +499,7 @@ func wrapForTerm(s string) string {
 
 func usage(w io.Writer) {
 	s := fmt.Sprintf(
-		`Usage: %s [-h] [-V] [-a <attempts>] [-b <backoff>] [-c <condition>] [-d <delay>] [-E] [-F] [-f] [-I] [-j <jitter>] [-m <max-delay>] [-O] [-o <path>] [-R <format>] [-r <reset-time>] [-s <seed>] [-t <timeout>] [-v] [--] <command> [<arg> ...]`,
+		`Usage: %s [-h] [-V] [-a <attempts>] [-b <backoff>] [-c <condition>] [-d <delay>] [-E] [-F] [-f] [-I] [-j <jitter>] [-m <max-delay>] [-O] [-R <path>] [-r <reset-time>] [-s <seed>] [-t <timeout>] [-v] [--] <command> [<arg> ...]`,
 		filepath.Base(os.Args[0]),
 	)
 
@@ -515,7 +533,7 @@ Options:
   -b, --backoff %v
           Base for exponential backoff (duration)
 
-  -c, --condition %q
+  -c, --condition '%v'
           Success condition (Starlark expression)
 
   -d, --delay %v
@@ -533,8 +551,8 @@ Options:
   -I, --replay-stdin
           Read standard input until EOF at the start and replay it on each attempt
 
-  -j, --jitter %q
-          Additional random delay (maximum duration or "min,max" duration)
+  -j, --jitter '%v'
+          Additional random delay (maximum duration or 'min,max' duration)
 
   -m, --max-delay %v
           Maximum allowed sum of constant delay, exponential backoff, and Fibonacci backoff (duration)
@@ -542,11 +560,8 @@ Options:
   -O, --hold-stdout
           Buffer standard output for each attempt and only print it on success
 
-  -o, --report-file %q
-          Output file for the report ("-" for stderr)
-
-  -R, --report %q
-          Report format ("none", "json", or "text")
+  -R, --report '%v'
+          Report output (file path or '-' for stderr; prefix with 'json:' or 'text:' to override the format; empty to disable)
 
   -r, --reset %v
           Minimum attempt time that resets exponential and Fibonacci backoff (duration; negative for no reset)
@@ -566,7 +581,6 @@ Options:
 		formatDuration(delayDefault),
 		jitterDefault,
 		formatDuration(maxDelayDefault),
-		reportFileDefault,
 		reportDefault,
 		formatDuration(resetDefault),
 		randomSeedDefault,
@@ -594,8 +608,7 @@ func parseArgs() retryConfig {
 		Reset:       resetDefault,
 		Timeout:     timeoutDefault,
 		Verbose:     0,
-		Report:      reportFormatNone,
-		ReportFile:  reportFileDefault,
+		Report:      reportConfig{Format: reportFormatNone, Path: ""},
 	}
 
 	usageError := func(message string, badValue any) {
@@ -704,9 +717,6 @@ func parseArgs() retryConfig {
 		case "-O", "--hold-stdout":
 			config.HoldStdout = true
 
-		case "-o", "--report-file":
-			config.ReportFile = nextArg(arg)
-
 		case "-E", "--hold-stderr":
 			config.HoldStderr = true
 
@@ -742,13 +752,9 @@ func parseArgs() retryConfig {
 
 		case "-R", "--report":
 			reportStr := nextArg(arg)
+			report := parseReportConfig(reportStr)
 
-			reportFormat, err := parseReportFormat(reportStr)
-			if err != nil {
-				usageError("invalid report format: %v", reportStr)
-			}
-
-			config.Report = reportFormat
+			config.Report = report
 
 		// "-v" is handled in the default case.
 		case "--verbose":
@@ -810,8 +816,8 @@ func formatList[T any](list []T) string {
 	return strings.Join(strs, ", ")
 }
 
-func generateReport(stats recurStats, reportFormat reportFormat, reportFile string) {
-	if reportFormat == reportFormatNone {
+func generateReport(stats recurStats, report reportConfig) {
+	if report.Format == reportFormatNone {
 		return
 	}
 
@@ -843,10 +849,10 @@ func generateReport(stats recurStats, reportFormat reportFormat, reportFile stri
 	}
 
 	var output io.Writer
-	if reportFile == "-" {
+	if report.Path == "-" {
 		output = os.Stderr
 	} else {
-		file, err := os.Create(reportFile)
+		file, err := os.Create(report.Path)
 		if err != nil {
 			log.Printf("failed to create report file: %v", err)
 
@@ -857,12 +863,12 @@ func generateReport(stats recurStats, reportFormat reportFormat, reportFile stri
 		output = file
 	}
 
-	switch reportFormat {
+	switch report.Format {
 	case reportFormatJSON:
 		var jsonData []byte
 		var err error
 
-		if reportFile == "-" {
+		if report.Path == "-" {
 			jsonData, err = json.Marshal(data)
 		} else {
 			jsonData, err = json.MarshalIndent(data, "", "    ")
@@ -948,7 +954,7 @@ func main() {
 		log.Printf("%v", err)
 	}
 
-	generateReport(stats, config.Report, config.ReportFile)
+	generateReport(stats, config.Report)
 
 	os.Exit(exitCode)
 }

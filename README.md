@@ -45,9 +45,8 @@ go install dbohdan.com/recur/v3@latest
 <!-- BEGIN USAGE -->
 ```none
 Usage: recur [-h] [-V] [-a <attempts>] [-b <backoff>] [-c <condition>] [-d
-<delay>] [-E] [-F] [-f] [-I] [-j <jitter>] [-m <max-delay>] [-O] [-o <path>] [-R
-<format>] [-r <reset-time>] [-s <seed>] [-t <timeout>] [-v] [--] <command>
-[<arg> ...]
+<delay>] [-E] [-F] [-f] [-I] [-j <jitter>] [-m <max-delay>] [-O] [-R <path>] [-r
+<reset-time>] [-s <seed>] [-t <timeout>] [-v] [--] <command> [<arg> ...]
 
 Retry a command with exponential backoff and jitter.
 
@@ -71,7 +70,7 @@ Options:
   -b, --backoff 0
           Base for exponential backoff (duration)
 
-  -c, --condition "code == 0"
+  -c, --condition 'code == 0'
           Success condition (Starlark expression)
 
   -d, --delay 0
@@ -90,8 +89,8 @@ Options:
           Read standard input until EOF at the start and replay it on each
 attempt
 
-  -j, --jitter "0,0"
-          Additional random delay (maximum duration or "min,max" duration)
+  -j, --jitter '0,0'
+          Additional random delay (maximum duration or 'min,max' duration)
 
   -m, --max-delay 1h
           Maximum allowed sum of constant delay, exponential backoff, and
@@ -100,11 +99,9 @@ Fibonacci backoff (duration)
   -O, --hold-stdout
           Buffer standard output for each attempt and only print it on success
 
-  -o, --report-file "-"
-          Output file for the report ("-" for stderr)
-
-  -R, --report "none"
-          Report format ("none", "json", or "text")
+  -R, --report ''
+          Report output (file path or '-' for stderr; prefix with 'json:' or
+'text:' to override the format; empty to disable)
 
   -r, --reset -1s
           Minimum attempt time that resets exponential and Fibonacci backoff
@@ -350,49 +347,48 @@ recur --condition 'code == 0 or (code in (1, 2, 3, 4) and exit(code))' curl "$ur
 ## Reports
 
 The `-R`/`--report` option controls the output of statistics when recur exits.
-The available formats are:
 
-- `none` (default): no statistics are printed
-- `text`: human-readable text
-- `json`: machine-readable JSON
-
-By default, reports are written to standard error.
-Use `-o`/`--report-file` to write to a file instead.
-Use `-o -`/`--report-file -` to explicitly write to standard error.
+Reporting is disabled by default.
+Use `-R -`/`--report -` to write a report to standard error or `-R foo/bar`/`--report foo/bar` to write it to the file `foo/bar`.
+The report format, JSON or text, is determined by whether the file extension is `.json`.
+Use the prefix `json:` or `text:` to override the format.
 
 ### Text report
 
-The text report displays statistics in a tabular format:
+The text report presents statistics in two columns:
 
 ```none
-$ recur -a 3 -c False -R text sh -c 'exit 99'
+$ recur -a 3 -c False -R - sh -c 'exit 99'
 recur [00:00:00.0]: maximum 3 attempts reached
 
-     Total attempts: 3
-          Successes: 0
-           Failures: 3
+  Total attempts: 3
+       Successes: 0
+        Failures: 3
 
-         Total time: 0.003
-         Wait times: 0.000, 0.000, 0.000
+      Total time: 0.003
+      Wait times: 0.000, 0.000, 0.000
 
-      Condition met: false, false, false
-      Command found: true, true, true
-         Exit codes: 99, 99, 99
+   Condition met: false, false, false
+   Command found: true, true, true
+      Exit codes: 99, 99, 99
 ```
 
 See the JSON section for an explanation of each value.
+
+The text report format is not considered stable.
+Do not rely on parsing it.
 
 ### JSON Report
 
 The JSON report provides the same information in a machine-readable format:
 
 ```none
-> ./recur -a 3 -c False -R json sh -c 'exit 99'
+> ./recur -a 3 -c False -R json:- sh -c 'exit 99'
 recur [00:00:00.0]: maximum 3 attempts reached
 {"attempts":3,"command_found":[true,true,true],"condition_met":[false,false,false],"exit_codes":[99,99,99],"failures":3,"successes":0,"total_time":0.010311538,"wait_times":[0,0,0]}
 ```
 
-When writing to a file (using `-o`/`--report-file` with a path other than `-`), the JSON data is formatted with indentation;
+The JSON is indented when written to a file;
 on standard error, it is a single line for easy filtering.
 
 The JSON report contains:
@@ -401,8 +397,8 @@ The JSON report contains:
 - `command_found`: an array of booleans indicating whether the command was found for each attempt
 - `condition_met`: an array of booleans indicating whether the success condition was met for each attempt
 - `exit_codes`: an array of exit codes from each attempt
-- `failures`: the number of attempts where the condition was not met
-- `successes`: the number of attempts where the condition was met
+- `failures`: the number of attempts when the condition was not met
+- `successes`: the number of attempts when the condition was met
 - `total_time`: the elapsed time from the start of the first attempt to the end of the last attempt, in seconds
 - `wait_times`: an array of delays _before_ each attempt, in seconds
 
