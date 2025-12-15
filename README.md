@@ -45,9 +45,9 @@ go install dbohdan.com/recur/v3@latest
 <!-- BEGIN USAGE -->
 ```none
 Usage: recur [-h] [-V] [-a <attempts>] [-b <backoff>] [-c <condition>] [-d
-<delay>] [-E] [-F] [-f] [-I] [-j <jitter>] [-m <max-delay>] [-O] [-R <format>]
-[--report-file <path>] [-r <reset-time>] [-s <seed>] [-t <timeout>] [-v] [--]
-<command> [<arg> ...]
+<delay>] [-E] [-F] [-f] [-I] [-j <jitter>] [-m <max-delay>] [-O] [-o <path>] [-R
+<format>] [-r <reset-time>] [-s <seed>] [-t <timeout>] [-v] [--] <command>
+[<arg> ...]
 
 Retry a command with exponential backoff and jitter.
 
@@ -100,11 +100,11 @@ Fibonacci backoff (duration)
   -O, --hold-stdout
           Buffer standard output for each attempt and only print it on success
 
+  -o, --report-file "-"
+          Report output file path ("-" for stderr)
+
   -R, --report "none"
           Report format ("none", "json", or "text")
-
-      --report-file "-"
-          Report output file path ("-" for stderr)
 
   -r, --reset -1s
           Minimum attempt time that resets exponential and Fibonacci backoff
@@ -357,8 +357,8 @@ The available formats are:
 - `json`: machine-readable JSON
 
 By default, reports are written to standard error.
-Use `--report-file` to write to a file instead.
-Use `--report-file -` to explicitly write to standard error.
+Use `-o`/`--report-file` to write to a file instead.
+Use `-o -`/`--report-file -` to explicitly write to standard error.
 
 ### Text report
 
@@ -392,7 +392,7 @@ recur [00:00:00.0]: maximum 3 attempts reached
 {"attempts":3,"command_found":[true,true,true],"condition_results":[false,false,false],"exit_codes":[99,99,99],"failures":3,"successes":0,"total_time":0.010311538,"wait_times":[0,0,0]}
 ```
 
-When writing to a file (using `--report-file` with a path other than `-`), the JSON is formatted with indentation;
+When writing to a file (using `-o`/`--report-file` with a path other than `-`), the JSON data is formatted with indentation;
 on standard error, it is a single line for easy filtering.
 
 The JSON report contains:

@@ -480,7 +480,7 @@ func wrapForTerm(s string) string {
 
 func usage(w io.Writer) {
 	s := fmt.Sprintf(
-		`Usage: %s [-h] [-V] [-a <attempts>] [-b <backoff>] [-c <condition>] [-d <delay>] [-E] [-F] [-f] [-I] [-j <jitter>] [-m <max-delay>] [-O] [-R <format>] [--report-file <path>] [-r <reset-time>] [-s <seed>] [-t <timeout>] [-v] [--] <command> [<arg> ...]`,
+		`Usage: %s [-h] [-V] [-a <attempts>] [-b <backoff>] [-c <condition>] [-d <delay>] [-E] [-F] [-f] [-I] [-j <jitter>] [-m <max-delay>] [-O] [-o <path>] [-R <format>] [-r <reset-time>] [-s <seed>] [-t <timeout>] [-v] [--] <command> [<arg> ...]`,
 		filepath.Base(os.Args[0]),
 	)
 
@@ -541,11 +541,11 @@ Options:
   -O, --hold-stdout
           Buffer standard output for each attempt and only print it on success
 
+  -o, --report-file %q
+          Report output file path ("-" for stderr)
+
   -R, --report %q
           Report format ("none", "json", or "text")
-
-      --report-file %q
-          Report output file path ("-" for stderr)
 
   -r, --reset %v
           Minimum attempt time that resets exponential and Fibonacci backoff (duration; negative for no reset)
@@ -565,8 +565,8 @@ Options:
 		formatDuration(delayDefault),
 		jitterDefault,
 		formatDuration(maxDelayDefault),
-		reportDefault,
 		reportFileDefault,
+		reportDefault,
 		formatDuration(resetDefault),
 		randomSeedDefault,
 		formatDuration(timeoutDefault),
@@ -703,6 +703,9 @@ func parseArgs() retryConfig {
 		case "-O", "--hold-stdout":
 			config.HoldStdout = true
 
+		case "-o", "--report-file":
+			config.ReportFile = nextArg(arg)
+
 		case "-E", "--hold-stderr":
 			config.HoldStderr = true
 
@@ -745,9 +748,6 @@ func parseArgs() retryConfig {
 			}
 
 			config.Report = reportFormat
-
-		case "--report-file":
-			config.ReportFile = nextArg(arg)
 
 		// "-v" is handled in the default case.
 		case "--verbose":

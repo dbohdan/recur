@@ -717,7 +717,7 @@ func TestReportJSON(t *testing.T) {
 }
 
 func TestReportText(t *testing.T) {
-	_, stderr, _ := runCommand("-R", "text", "-a", "3", "-c", "False", commandExit99)
+	_, stderr, _ := runCommand("-R", "text", "-o", "-", "-a", "3", "-c", "False", commandExit99)
 
 	for _, text := range []string{"attempts: 3", "Exit codes: 99, 99, 99"} {
 		if !strings.Contains(stderr, text) {
