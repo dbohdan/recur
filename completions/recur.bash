@@ -4,7 +4,7 @@ _recur() {
     COMPREPLY=()
     cur=${COMP_WORDS[COMP_CWORD]}
     prev=${COMP_WORDS[COMP_CWORD - 1]}
-    opts='-h --help -V --version -a --attempts -b --backoff -c --condition -d --delay -E --hold-stderr -F --fib -f --forever -I --replay-stdin -j --jitter -m --max-delay -O --hold-stdout -r --reset -s --seed -t --timeout -v --verbose'
+    opts='-h --help -V --version -a --attempts -b --backoff -c --condition -d --delay -E --hold-stderr -F --fib -f --forever -I --replay-stdin -j --jitter -m --max-delay -O --hold-stdout -o --report-file -R --report -r --reset -s --seed -t --timeout -v --verbose'
 
     case "${prev}" in
     -a | --attempts)
@@ -29,6 +29,14 @@ _recur() {
         ;;
     -s | --seed)
         COMPREPLY=($(compgen -W "0 123" -- ${cur}))
+        return 0
+        ;;
+    -o | --report-file)
+        COMPREPLY=($(compgen -f -- ${cur}))
+        return 0
+        ;;
+    -R | --report)
+        COMPREPLY=($(compgen -W "none json text" -- ${cur}))
         return 0
         ;;
     esac
