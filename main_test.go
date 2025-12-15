@@ -700,6 +700,21 @@ func TestReportJSON(t *testing.T) {
 		t.Errorf("Expected attempts to be 3, got %v", report["attempts"])
 	}
 
+	conditionMet, ok := report["condition_met"].([]interface{})
+	if !ok {
+		t.Errorf("Expected condition_met to be an array, got %T", report["condition_met"])
+	}
+
+	if len(conditionMet) != 3 {
+		t.Errorf("Expected 3 condition_met values, got %d", len(conditionMet))
+	}
+
+	for i, met := range conditionMet {
+		if metBool, ok := met.(bool); !ok || metBool != false {
+			t.Errorf("Expected condition_met %d to be false, got %v", i, met)
+		}
+	}
+
 	exitCodes, ok := report["exit_codes"].([]interface{})
 	if !ok {
 		t.Errorf("Expected exit_codes to be an array, got %T", report["exit_codes"])

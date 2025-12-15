@@ -815,14 +815,14 @@ func generateReport(stats recurStats, reportFormat reportFormat, reportFile stri
 	}
 
 	type reportData struct {
-		Attempts         int       `json:"attempts"`
-		CommandFound     []bool    `json:"command_found"`
-		ConditionResults []bool    `json:"condition_results"`
-		ExitCodes        []int     `json:"exit_codes"`
-		Failures         int       `json:"failures"`
-		Successes        int       `json:"successes"`
-		TotalTime        float64   `json:"total_time"`
-		WaitTimes        []float64 `json:"wait_times"`
+		Attempts     int       `json:"attempts"`
+		CommandFound []bool    `json:"command_found"`
+		ConditionMet []bool    `json:"condition_met"`
+		ExitCodes    []int     `json:"exit_codes"`
+		Failures     int       `json:"failures"`
+		Successes    int       `json:"successes"`
+		TotalTime    float64   `json:"total_time"`
+		WaitTimes    []float64 `json:"wait_times"`
 	}
 
 	waitTimeSeconds := make([]float64, len(stats.WaitTimes))
@@ -831,14 +831,14 @@ func generateReport(stats recurStats, reportFormat reportFormat, reportFile stri
 	}
 
 	data := reportData{
-		Attempts:         stats.Attempts,
-		CommandFound:     stats.CommandFound,
-		ConditionResults: stats.ConditionResults,
-		ExitCodes:        stats.ExitCodes,
-		Failures:         stats.Failures,
-		Successes:        stats.Successes,
-		TotalTime:        stats.TotalTime.Seconds(),
-		WaitTimes:        waitTimeSeconds,
+		Attempts:     stats.Attempts,
+		CommandFound: stats.CommandFound,
+		ConditionMet: stats.ConditionResults,
+		ExitCodes:    stats.ExitCodes,
+		Failures:     stats.Failures,
+		Successes:    stats.Successes,
+		TotalTime:    stats.TotalTime.Seconds(),
+		WaitTimes:    waitTimeSeconds,
 	}
 
 	var output io.Writer
@@ -888,7 +888,7 @@ func generateReport(stats recurStats, reportFormat reportFormat, reportFile stri
 		fmt.Fprintf(tw, "Wait times: \t%s\n", formatList(data.WaitTimes))
 
 		fmt.Fprintf(tw, "\t\n")
-		fmt.Fprintf(tw, "Condition results: \t%s\n", formatList(data.ConditionResults))
+		fmt.Fprintf(tw, "Condition met: \t%s\n", formatList(data.ConditionMet))
 		fmt.Fprintf(tw, "Command found: \t%s\n", formatList(data.CommandFound))
 		fmt.Fprintf(tw, "Exit codes: \t%s\n", formatList(data.ExitCodes))
 

@@ -375,7 +375,7 @@ recur [00:00:00.0]: maximum 3 attempts reached
          Total time: 0.003
          Wait times: 0.000, 0.000, 0.000
 
-  Condition results: false, false, false
+      Condition met: false, false, false
       Command found: true, true, true
          Exit codes: 99, 99, 99
 ```
@@ -389,7 +389,7 @@ The JSON report provides the same information in a machine-readable format:
 ```none
 > ./recur -a 3 -c False -R json sh -c 'exit 99'
 recur [00:00:00.0]: maximum 3 attempts reached
-{"attempts":3,"command_found":[true,true,true],"condition_results":[false,false,false],"exit_codes":[99,99,99],"failures":3,"successes":0,"total_time":0.010311538,"wait_times":[0,0,0]}
+{"attempts":3,"command_found":[true,true,true],"condition_met":[false,false,false],"exit_codes":[99,99,99],"failures":3,"successes":0,"total_time":0.010311538,"wait_times":[0,0,0]}
 ```
 
 When writing to a file (using `-o`/`--report-file` with a path other than `-`), the JSON data is formatted with indentation;
@@ -399,7 +399,7 @@ The JSON report contains:
 
 - `attempts`: the number of times the command was run
 - `command_found`: an array of booleans indicating whether the command was found for each attempt
-- `condition_results`: an array of booleans indicating whether the condition was met for each attempt
+- `condition_met`: an array of booleans indicating whether the success condition was met for each attempt
 - `exit_codes`: an array of exit codes from each attempt
 - `failures`: the number of attempts where the condition was not met
 - `successes`: the number of attempts where the condition was met
