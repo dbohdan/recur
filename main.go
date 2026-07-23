@@ -53,7 +53,7 @@ const (
 	exitCodeCommandNotFound = 127
 	exitCodeError           = 255
 	exitCodeTimeout         = 124
-	version                 = "3.3.0"
+	version                 = "3.4.0"
 
 	invSqrt5 = 0.4472135954999579
 
