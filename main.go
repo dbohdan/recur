@@ -506,7 +506,7 @@ func retry(config retryConfig, stdinContent []byte, rng *rand.Rand) (int, recurS
 }
 
 func wrapForTerm(s string) string {
-	width, _, err := term.GetSize(int(os.Stdin.Fd()))
+	width, _, err := term.GetSize(int(os.Stdout.Fd()))
 	if err != nil {
 		return s
 	}
