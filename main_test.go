@@ -65,8 +65,8 @@ func runCommandWithStdin(stdin string, args ...string) (string, string, error) {
 func TestUsage(t *testing.T) {
 	_, stderr, _ := runCommand()
 
-	if matched, _ := regexp.MatchString("Usage", stderr); !matched {
-		t.Error("Expected 'Usage' in stderr")
+	if matched, _ := regexp.MatchString("<command>", stderr); !matched {
+		t.Error("Expected '<command>' in stderr")
 	}
 }
 

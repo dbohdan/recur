@@ -44,12 +44,10 @@ go install dbohdan.com/recur/v3@latest
 
 <!-- BEGIN USAGE -->
 ```none
-Usage: recur [-h] [-V] [-a <attempts>] [-b <backoff>] [-C <path>] [-c
-<condition>] [-d <delay>] [-E] [-F] [-I] [-j <jitter>] [-m <max-delay>] [-O] [-R
-<path>] [-r <reset-time>] [-s <seed>] [-T] [-t <timeout>] [-u] [-v] [--]
-<command> [<arg> ...]
+Usage: recur [options] [--] <command> [<arg> ...]
 
-Retry a command with exponential backoff and jitter.
+Run a command repeatedly until it succeeds, with optional exponential backoff
+and jitter.
 
 Arguments:
   <command>
@@ -65,63 +63,71 @@ Options:
   -V, --version
           Print version number and exit
 
-  -a, --attempts 10
-          Maximum number of attempts (negative for unlimited)
+  -a, --attempts <n>
+          Maximum number of attempts (default: 10; negative for unlimited)
 
-  -b, --backoff 0
-          Base for exponential backoff (duration)
+  -b, --backoff <duration>
+          Exponential backoff; wait backoff^(n-1) seconds before attempt n
+(default: 0, disabled)
 
-  -C, --condition-file ''
-          Success condition Starlark source file (file path or '' to disable)
+  -C, --condition-file <path>
+          Success condition Starlark source file (default: disabled)
 
-  -c, --condition 'code == 0'
-          Success condition (Starlark expression)
+  -c, --condition <expr>
+          Success condition (Starlark expression; default: 'code == 0')
 
-  -d, --delay 0
-          Constant delay (duration)
+  -d, --delay <duration>
+          Constant delay (default: 0)
 
   -E, --hold-stderr
           Buffer standard error for each attempt and only print it on success
 
   -F, --fib
-          Add Fibonacci backoff
+          Add fib(n-1) seconds of Fibonacci backoff before attempt n
 
   -I, --replay-stdin
           Read standard input until EOF at the start and replay it on each
 attempt
 
-  -j, --jitter '0,0'
-          Additional random delay (maximum duration or 'min,max' duration)
+  -j, --jitter <max>|<min>,<max>
+          Additional random delay (durations; default: '0,0', disabled)
 
-  -m, --max-delay 1h
+  -m, --max-delay <duration>
           Maximum allowed sum of constant delay, exponential backoff, and
-Fibonacci backoff (duration)
+Fibonacci backoff (default: 1h; automatically increased to the constant delay if
+shorter)
 
   -O, --hold-stdout
           Buffer standard output for each attempt and only print it on success
 
-  -R, --report ''
-          Report output (file path, '-' for stderr, or '' to disable; prefix
-with 'json:' or 'text:' to override the format)
+  -R, --report <path>
+          Report output (file path or '-' for stderr; prefix with 'json:' or
+'text:' to override the format; default: disabled)
 
-  -r, --reset -1s
+  -r, --reset <duration>
           Minimum attempt time that resets exponential and Fibonacci backoff
-(duration; negative for no reset)
+(default: no reset)
 
-  -s, --seed 0
-          Random seed for jitter (0 for automatic)
+  -s, --seed <n>
+          Random seed for jitter (default: 0, automatic)
 
   -T, --date-time
           Print date-time per RFC 3339 instead of elapsed time in verbose mode
 
-  -t, --timeout -1s
-          Timeout for each attempt (duration; negative for no timeout)
+  -t, --timeout <duration>
+          Timeout for each attempt (default: no timeout)
 
-  -u, --unlimited, -f, --forever
-          Unlimited attempts
+  -u, --unlimited
+          Unlimited attempts (deprecated aliases: -f, --forever)
 
   -v, --verbose
-          Increase verbosity (up to 4 times)
+          Increase verbosity (up to 4 times: 1 attempt results, 2 condition
+details, 3-4 configuration)
+
+Durations use Go syntax: 500ms, 2.5s, 1m, 1h.
+Exit codes: the last command's exit code; 124 on timeout, 127 when the command
+is not found, 255 on internal error.
+Docs: https://github.com/dbohdan/recur
 ```
 <!-- END USAGE -->
 

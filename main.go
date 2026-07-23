@@ -514,10 +514,16 @@ func wrapForTerm(s string) string {
 	return wordwrap.WrapString(s, uint(width))
 }
 
-func usage(w io.Writer) {
+func usage(w io.Writer, listOptions bool) {
+	options := "[options]"
+	if listOptions {
+		options = "[-h] [-V] [-a <attempts>] [-b <backoff>] [-C <path>] [-c <condition>] [-d <delay>] [-E] [-F] [-I] [-j <jitter>] [-m <max-delay>] [-O] [-R <path>] [-r <reset-time>] [-s <seed>] [-T] [-t <timeout>] [-u] [-v]"
+	}
+
 	s := fmt.Sprintf(
-		`Usage: %s [-h] [-V] [-a <attempts>] [-b <backoff>] [-C <path>] [-c <condition>] [-d <delay>] [-E] [-F] [-I] [-j <jitter>] [-m <max-delay>] [-O] [-R <path>] [-r <reset-time>] [-s <seed>] [-T] [-t <timeout>] [-u] [-v] [--] <command> [<arg> ...]`,
+		`Usage: %s %s [--] <command> [<arg> ...]`,
 		filepath.Base(os.Args[0]),
+		options,
 	)
 
 	fmt.Fprintln(w, wrapForTerm(s))
@@ -538,11 +544,11 @@ func singleQuote(s string) string {
 }
 
 func help() {
-	usage(os.Stdout)
+	usage(os.Stdout, false)
 
 	s := fmt.Sprintf(
 		`
-Retry a command with exponential backoff and jitter.
+Run a command repeatedly until it succeeds, with optional exponential backoff and jitter.
 
 Arguments:
   <command>
@@ -558,71 +564,71 @@ Options:
   -V, --version
           Print version number and exit
 
-  -a, --attempts %v
-          Maximum number of attempts (negative for unlimited)
+  -a, --attempts <n>
+          Maximum number of attempts (default: %v; negative for unlimited)
 
-  -b, --backoff %v
-          Base for exponential backoff (duration)
+  -b, --backoff <duration>
+          Exponential backoff; wait backoff^(n-1) seconds before attempt n (default: %v, disabled)
 
-  -C, --condition-file %v
-          Success condition Starlark source file (file path or '' to disable)
+  -C, --condition-file <path>
+          Success condition Starlark source file (default: disabled)
 
-  -c, --condition %v
-          Success condition (Starlark expression)
+  -c, --condition <expr>
+          Success condition (Starlark expression; default: %v)
 
-  -d, --delay %v
-          Constant delay (duration)
+  -d, --delay <duration>
+          Constant delay (default: %v)
 
   -E, --hold-stderr
           Buffer standard error for each attempt and only print it on success
 
   -F, --fib
-          Add Fibonacci backoff
+          Add fib(n-1) seconds of Fibonacci backoff before attempt n
 
   -I, --replay-stdin
           Read standard input until EOF at the start and replay it on each attempt
 
-  -j, --jitter %v
-          Additional random delay (maximum duration or 'min,max' duration)
+  -j, --jitter <max>|<min>,<max>
+          Additional random delay (durations; default: %v, disabled)
 
-  -m, --max-delay %v
-          Maximum allowed sum of constant delay, exponential backoff, and Fibonacci backoff (duration)
+  -m, --max-delay <duration>
+          Maximum allowed sum of constant delay, exponential backoff, and Fibonacci backoff (default: %v; automatically increased to the constant delay if shorter)
 
   -O, --hold-stdout
           Buffer standard output for each attempt and only print it on success
 
-  -R, --report %v
-          Report output (file path, '-' for stderr, or '' to disable; prefix with 'json:' or 'text:' to override the format)
+  -R, --report <path>
+          Report output (file path or '-' for stderr; prefix with 'json:' or 'text:' to override the format; default: disabled)
 
-  -r, --reset %v
-          Minimum attempt time that resets exponential and Fibonacci backoff (duration; negative for no reset)
+  -r, --reset <duration>
+          Minimum attempt time that resets exponential and Fibonacci backoff (default: no reset)
 
-  -s, --seed %v
-          Random seed for jitter (0 for automatic)
+  -s, --seed <n>
+          Random seed for jitter (default: %v, automatic)
 
   -T, --date-time
           Print date-time per RFC 3339 instead of elapsed time in verbose mode
 
-  -t, --timeout %v
-          Timeout for each attempt (duration; negative for no timeout)
+  -t, --timeout <duration>
+          Timeout for each attempt (default: no timeout)
 
-  -u, --unlimited, -f, --forever
-          Unlimited attempts
+  -u, --unlimited
+          Unlimited attempts (deprecated aliases: -f, --forever)
 
   -v, --verbose
-          Increase verbosity (up to %v times)
+          Increase verbosity (up to %v times: 1 attempt results, 2 condition details, 3-4 configuration)
+
+Durations use Go syntax: 500ms, 2.5s, 1m, 1h.
+Exit codes: the last command's exit code; 124 on timeout, 127 when the command is not found, 255 on internal error.
+Docs: https://github.com/dbohdan/recur
 `,
 		maxAttemptsDefault,
 		formatDuration(backoffDefault),
-		singleQuote(conditionFileDefault),
 		singleQuote(conditionDefault),
 		formatDuration(delayDefault),
 		singleQuote(jitterDefault),
 		formatDuration(maxDelayDefault),
-		singleQuote(reportDefault),
-		formatDuration(resetDefault),
 		randomSeedDefault,
-		formatDuration(timeoutDefault),
 		verboseLevelMax,
 	)
 
@@ -653,7 +659,8 @@ func parseArgs() retryConfig {
 	}
 
 	usageError := func(message string, badValue any) {
-		usage(os.Stderr)
+		usage(os.Stderr, true)
+
 		fmt.Fprintf(os.Stderr, "\nError: "+message+"\n", badValue)
 		os.Exit(exitCodeBadUsage)
 	}
